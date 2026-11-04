@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quick Print — Online Xerox Ordering</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f3f5f9;color:#111827;font-family:Inter,Arial,sans-serif;padding:16px}
+#quickprint{max-width:680px;margin:auto;font-size:14px}
+#success-page{max-width:680px;margin:0 auto;min-height:calc(100vh - 32px);display:flex;flex-direction:column}
+.success-top{display:flex;align-items:center;gap:10px;margin-bottom:26px}
+.success-mark{width:76px;height:76px;border-radius:50%;background:#dcfce7;color:#15803d;display:grid;place-items:center;font-size:42px;font-weight:800;margin:22px auto 14px}
+.success-title{text-align:center;font-size:25px;font-weight:800;color:#111827;margin:0 0 7px}
+.success-sub{text-align:center;color:#6b7280;line-height:1.5;margin-bottom:20px}
+.eta-card{background:#eff6ff;border:1px solid #bfdbfe;border-radius:13px;padding:17px;text-align:center;margin-bottom:14px}
+.eta-label{font-size:12px;color:#1d4ed8;font-weight:700}
+.eta-time{font-size:25px;font-weight:800;color:#1d4ed8;margin-top:5px}
+.detail-row{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #edf0f4}
+.detail-row:last-child{border-bottom:0}
+.detail-row span{color:#6b7280}
+.detail-row strong{text-align:right;color:#111827;overflow-wrap:anywhere}
+.success-note{font-size:12px;color:#6b7280;line-height:1.5;text-align:center;margin:14px 0}
+@media(max-width:390px){.success-title{font-size:22px}.eta-time{font-size:22px}}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+.logo{width:35px;height:35px;border-radius:9px;background:#2563eb;color:white;display:grid;place-items:center;font-size:20px}
+.brandname{font-size:17px;font-weight:750;color:#000}
+h2{font-size:22px;font-weight:750;color:#000;margin:0 0 6px}
+.sub,.muted{color:#6b7280}.sub{margin-bottom:17px}
+.card{background:#fff;border:1px solid #e1e5ec;border-radius:13px;padding:14px;margin-top:13px}
+.heading{font-weight:750;color:#000;margin-bottom:10px}
+.upload{background:#fff;border:2px dashed #c7d5e8;border-radius:12px;text-align:center;padding:23px 10px}
+.upload-icon{font-size:25px;color:#2563eb;margin-bottom:7px}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid #dce1e9;border-radius:9px;background:#fff;color:#172033;padding:10px;font-weight:650;min-width:0}
+.btn.active{border:1.5px solid #2563eb;background:#eff4ff;color:#1d4ed8}
+.btn.disabled{opacity:.45;background:#f3f4f6;color:#6b7280}
+.primary{background:#2563eb;color:#fff;border:1px solid #2563eb}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.file-list{overflow-y:auto;max-height:180px}
+.file-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:9px;margin-top:8px;cursor:pointer}
+.file-row.selected{background:#eff4ff;border-color:#93b4f8}
+.file-name{font-weight:700;color:#000;overflow-wrap:anywhere}
+.file-meta{font-size:12px;color:#6b7280;margin-top:4px}
+.file-id{font-size:12px;color:#2563eb;font-weight:700;margin-top:3px}
+.remove{border:0;background:transparent;color:#6b7280;padding:5px}
+.choice-title{font-size:12px;font-weight:700;color:#000;margin:12px 0 7px}
+.ratebtn{position:relative;min-height:51px;padding:15px 8px 9px;text-align:center}
+.rate{position:absolute;top:3px;right:6px;font-size:10px;font-weight:750;color:#2563eb;white-space:nowrap}
+.field{width:100%;min-width:0;border:1px solid #d1d5db;border-radius:8px;padding:11px 9px;background:#fff;color:#111827;font:inherit}
+.field.invalid{border:1.5px solid #dc2626}
+.error{color:#dc2626;font-weight:750;font-size:12px;line-height:1.4;margin-top:6px}
+.info{color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:12px;font-weight:700;padding:8px;margin-top:8px;line-height:1.4}
+.range{border:1px solid #e5e7eb;border-radius:10px;padding:10px;margin-top:9px}
+.rangehead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-weight:700;color:#000}
+.range-layout{display:grid;grid-template-columns:minmax(105px,.85fr) minmax(0,1.4fr);gap:9px;align-items:start}
+.range-settings{min-width:0}
+.range-settings .choice-title{margin:0 0 5px}
+.range-settings .two{gap:5px}
+.range-settings .btn{font-size:11px;padding:9px 4px;min-height:38px}
+.range-settings .btn.disabled{opacity:.45}
+.range-settings .ratebtn{padding-top:14px}
+.range-settings .rate{font-size:9px;right:3px}
+.add{width:100%;margin-top:10px;padding:11px;border:1px solid #dce1e9;border-radius:9px;background:#fff;color:#2563eb;font-weight:700}
+.hint{font-size:12px;color:#6b7280;line-height:1.5;margin-top:9px}
+.stepper{display:flex;align-items:center;gap:11px}
+.stepper button{width:38px;height:38px;border:1px solid #dce1e9;border-radius:9px;background:#fff;color:#000!important;opacity:1!important;font-size:20px;font-weight:800;display:grid;place-items:center}
+.stepper button:disabled{color:#000!important;opacity:1!important;background:#fff}
+.stepper strong{color:#000!important;opacity:1!important;font-size:16px;font-weight:800;min-width:15px;text-align:center}
+.summaryline{display:flex;justify-content:space-between;gap:10px;padding:7px 0;color:#4b5563}
+.summaryline strong{color:#111827}
+.total{border-top:1px solid #e5e7eb;margin-top:8px;padding-top:12px;font-weight:750;color:#111827}
+.total strong{font-size:21px;color:#2563eb}
+.pay{width:100%;padding:13px;border-radius:9px;font-weight:750;margin-top:13px}
+.pay:disabled{opacity:.5;cursor:not-allowed}
+.foot{text-align:center;font-size:11px;color:#6b7280;margin-top:11px}
+.hidden{display:none!important}
+.complete{border:1px solid #86c99a;background:#f0fdf4}
+.complete h3{color:#166534;margin:0 0 7px}
+@media(max-width:390px){body{padding:11px}.range-layout{grid-template-columns:minmax(95px,.8fr) minmax(0,1.4fr);gap:6px}.range-settings .btn{font-size:10px}.range-settings .rate{font-size:8px}}
+</style>
+</head>
+<body>
+<main id="quickprint">
+  <div class="brand">
+    <div class="logo">▤</div>
+    <div><div class="brandname">Quick Print</div><div class="muted" style="font-size:12px">Online Xerox Ordering</div></div>
+    <div style="margin-left:auto;font-size:11px;color:#6b7280">● Print order</div>
+  </div>
+  <h2>Print your documents</h2>
+  <div class="sub">Upload your documents and select your printing preferences.</div>
+
+  <div class="upload">
+    <div class="upload-icon">⇧</div>
+    <div class="heading">Upload your documents</div>
+    <div class="muted" style="font-size:12px;margin-bottom:13px">PDF, DOC, DOCX, PPT, PPTX, PNG, JPG · up to 25 MB each</div>
+    <label class="btn primary" style="display:inline-block;cursor:pointer">＋ Choose file
+      <input id="files" type="file" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg" style="display:none">
+    </label>
+  </div>
+
+  <section class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="heading" style="margin:0">Uploaded documents</div><span id="count" class="muted" style="font-size:11px"></span>
+    </div>
+    <div id="doclist" class="file-list"></div>
+    <div class="hint">Select a document to configure its printing preferences.</div>
+  </section>
+
+  <section class="card">
+    <div class="heading">Which pages do you want to print?</div>
+    <div class="two">
+      <button class="btn" id="alltab">▤ All pages</button>
+      <button class="btn active" id="customtab">☷ Custom pages</button>
+    </div>
+    <div id="allpanel" class="hidden" style="margin-top:14px">
+      <div class="heading">All pages printing preferences</div>
+      <div id="allcount" class="muted" style="font-size:12px;margin-bottom:10px"></div>
+      <div class="choice-title">Colour preference</div>
+      <div class="two"><button class="btn" id="allbw">◐ Black &amp; White</button><button class="btn" id="allcolour">🌈 Colour</button></div>
+      <div class="choice-title">Sides</div>
+      <div class="two">
+        <button class="btn ratebtn" id="allsingle">Single-sided<span class="rate" id="allsinglerate"></span></button>
+        <button class="btn ratebtn" id="alldouble">Double-sided<span class="rate" id="alldoublerate"></span></button>
+      </div>
+      <div id="allinfo" class="info hidden" role="status"></div>
+    </div>
+    <div id="custompanel" style="margin-top:14px">
+      <div class="heading">Your custom page selections</div>
+      <div id="ranges"></div>
+      <button class="add" id="add">＋ Add another page range</button>
+      <div class="hint">Single page: enter 5. Multiple pages: enter 1-5. Each range has its own printing preferences.</div>
+    </div>
+  </section>
+
+  <section class="card" style="display:flex;justify-content:space-between;align-items:center">
+    <div><div class="heading" style="margin:0">Copies</div><div class="muted" style="font-size:12px">Number of identical sets</div></div>
+    <div class="stepper"><button id="minus" aria-label="Decrease copies">−</button><strong id="copies">1</strong><button id="plus" aria-label="Increase copies">＋</button></div>
+  </section>
+
+  <section class="card">
+    <div class="summaryline"><span>Selected pages</span><strong id="pages">0 pages</strong></div>
+    <div class="summaryline"><span>Estimated sheets per copy</span><strong id="sheets">0 sheets</strong></div>
+    <div class="summaryline" style="border-top:1px solid #e5e7eb;margin-top:7px;padding-top:12px"><strong>Printing cost per copy</strong><strong id="percopy">₹0.00</strong></div>
+    <div class="summaryline total"><span>Final amount</span><strong id="total">₹0.00</strong></div>
+    <button class="pay primary" id="pay" disabled>Pay ₹0.00 with UPI →</button>
+    <div class="hint">Prices are estimates until the shop confirms the page count.</div>
+  </section>
+
+  <div class="foot">Quick Print · Interactive prototype</div>
+  <section id="complete" class="card complete hidden" role="status">
+    <h3>✓ Payment successful</h3>
+    <div style="font-weight:700;margin-bottom:6px">Your print order has been placed.</div>
+    <div id="completion-time" style="color:#166534;font-weight:750;font-size:17px"></div>
+    <div id="order-summary" class="hint"></div>
+    <div class="hint">Demo only: in production, this completion estimate will be returned by your backend after payment verification.</div>
+  </section>
+</main>
+
+<main id="success-page" class="hidden" aria-live="polite">
+  <div class="success-top">
+    <div class="logo">▤</div>
+    <div><div class="brandname">Quick Print</div><div class="muted" style="font-size:12px">Online Xerox Ordering</div></div>
+    <div style="margin-left:auto;font-size:11px;color:#6b7280">Print order</div>
+  </div>
+
+  <div class="success-mark">✓</div>
+  <h1 class="success-title">Payment successful!</h1>
+  <div class="success-sub">Your payment has been received and your print order is confirmed.</div>
+
+  <section class="eta-card">
+    <div class="eta-label">ESTIMATED READY TIME</div>
+    <div class="eta-time" id="success-eta">Calculating…</div>
+    <div class="muted" id="success-eta-date" style="font-size:12px;margin-top:5px"></div>
+  </section>
+
+  <section class="card">
+    <div class="heading">Order details</div>
+    <div class="detail-row"><span>Order ID</span><strong id="success-order-id">—</strong></div>
+    <div class="detail-row"><span>Document</span><strong id="success-document">—</strong></div>
+    <div class="detail-row"><span>Document ID</span><strong id="success-document-id">—</strong></div>
+    <div class="detail-row"><span>Pages selected</span><strong id="success-pages">—</strong></div>
+    <div class="detail-row"><span>Copies</span><strong id="success-copies">—</strong></div>
+    <div class="detail-row"><span>Estimated sheets per copy</span><strong id="success-sheets">—</strong></div>
+    <div class="detail-row"><span>Printing cost per copy</span><strong id="success-per-copy">—</strong></div>
+    <div class="detail-row"><strong>Total paid</strong><strong id="success-total" style="color:#1d4ed8">—</strong></div>
+    <div class="detail-row"><span>Payment status</span><strong style="color:#15803d">Paid · Confirmed</strong></div>
+  </section>
+
+  <div class="success-note">Keep your order ID for reference. The shop will process your documents and complete the order by the estimated time.</div>
+  <button class="pay primary" id="new-order">Back to Quick Print</button>
+  <div class="foot">Quick Print · Online Xerox Ordering</div>
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const money = n => '₹' + Number(n).toFixed(2);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  let docs = [{id:'XR-1001',name:'New document.pdf',pages:2,size:'Demo file',selected:true}];
+  let nextDoc=1002, copies=1, mode='custom', nextRange=2;
+  let all={colour:'bw',side:'single',info:''};
+  let ranges=[{id:1,text:'',colour:'bw',side:'single',info:''}];
+
+  const current=()=>docs.find(d=>d.selected)||docs[0];
+  const rate=(colour,side)=>colour==='colour'?(side==='single'?8:10):(side==='single'?2:3);
+
+  function parse(value,total){
+    const s=value.trim();
+    if(!s)return {error:'Enter a page number or page range.'};
+    if(!/^\d+(?:-\d+)?$/.test(s))return {error:'Invalid format. Enter one page (5) or a range (1-5).'};
+    const parts=s.split('-').map(Number),a=parts[0],b=parts.length===1?a:parts[1];
+    if(a<1||b<1)return {error:'Page numbers must start from 1.'};
+    if(parts.length===2&&a===b)return {error:'For one page, enter only the page number (e.g. 5), not 5-5.'};
+    if(b<a)return {error:'The ending page must be greater than the starting page.'};
+    if(b>total)return {error:'Page number exceeds this document’s '+total+' pages.'};
+    return {a,b,count:b-a+1};
+  }
+
+  function overlapError(index,p){
+    for(let j=0;j<index;j++){
+      const previous=parse(ranges[j].text,current().pages);
+      if(!previous.error&&p.a<=previous.b&&p.b>=previous.a)return 'This range overlaps with Page selection '+(j+1)+'.';
+    }
+    return '';
+  }
+
+  function resetUnavailableSides(){
+    if(current().pages<2)all.side='single';
+    ranges.forEach(r=>{const p=parse(r.text,current().pages);if(!p.error&&p.count<2)r.side='single';});
+  }
+
+  function renderDocs(){
+    $('count').textContent=docs.length+' document'+(docs.length===1?'':'s');
+    $('doclist').style.maxHeight=docs.length>1?'180px':'100px';
+    $('doclist').innerHTML=docs.map(d=>`
+      <div class="file-row ${d.selected?'selected':''}" data-doc="${d.id}">
+        <div style="display:flex;align-items:center;gap:9px;min-width:0">
+          <span style="font-size:19px">▤</span>
+          <div style="min-width:0">
+            <div class="file-name">${esc(d.name)}</div>
+            <div class="file-meta">${d.pages} pages · ${esc(d.size)}</div>
+            <div class="file-id">${esc(d.id)}</div>
+          </div>
+        </div>
+        <button class="remove" data-remove="${d.id}" aria-label="Remove document">✕</button>
+      </div>`).join('');
+
+    $('doclist').querySelectorAll('[data-doc]').forEach(el=>el.addEventListener('click',e=>{
+      if(e.target.closest('[data-remove]'))return;
+      docs.forEach(d=>d.selected=d.id===el.dataset.doc);
+      resetUnavailableSides();renderDocs();render();
+    }));
+
+    $('doclist').querySelectorAll('[data-remove]').forEach(el=>el.addEventListener('click',e=>{
+      e.stopPropagation();
+      docs=docs.filter(d=>d.id!==el.dataset.remove);
+      if(!docs.length)docs=[{id:'XR-'+nextDoc++,name:'New document.pdf',pages:2,size:'Demo file',selected:true}];
+      if(!docs.some(d=>d.selected))docs[0].selected=true;
+      resetUnavailableSides();renderDocs();render();
+    }));
+  }
+
+  function renderRanges(){
+    const total=current().pages;
+    $('ranges').innerHTML=ranges.map((r,i)=>{
+      const p=parse(r.text,total);
+      const error=p.error||(!p.error?overlapError(i,p):'');
+      const disabled=!!error||p.count<2;
+      return `<div class="range">
+        <div class="rangehead"><span>Page selection ${i+1}</span>${ranges.length>1?`<button class="remove" data-delete="${r.id}">✕ Remove</button>`:''}</div>
+        <div class="range-layout">
+          <div>
+            <input class="field ${error?'invalid':''}" data-input="${r.id}" value="${esc(r.text)}" placeholder="e.g. 1-5" aria-label="Page range ${i+1}">
+            ${error?`<div class="error">${esc(error)}</div>`:''}
+          </div>
+          <div class="range-settings">
+            <div class="choice-title">Colour</div>
+            <div class="two">
+              <button class="btn ${r.colour==='bw'?'active':''}" data-colour="bw" data-id="${r.id}">B&amp;W</button>
+              <button class="btn ${r.colour==='colour'?'active':''}" data-colour="colour" data-id="${r.id}">🌈 Colour</button>
+            </div>
+            <div class="choice-title" style="margin-top:9px">Sides</div>
+            <div class="two">
+              <button class="btn ratebtn ${r.side==='single'?'active':''}" data-side="single" data-id="${r.id}">Single<span class="rate">${money(rate(r.colour,'single'))}</span></button>
+              <button class="btn ratebtn ${r.side==='double'?'active':''} ${disabled?'disabled':''}" data-side="double" data-id="${r.id}" aria-disabled="${disabled}">Double<span class="rate">${money(rate(r.colour,'double'))}</span></button>
+            </div>
+          </div>
+        </div>
+        ${r.info?`<div class="info" role="status">${esc(r.info)}</div>`:''}
+      </div>`;
+    }).join('');
+
+    $('ranges').querySelectorAll('[data-input]').forEach(input=>input.addEventListener('input',()=>{
+      const r=ranges.find(x=>x.id===Number(input.dataset.input));
+      r.text=input.value;r.info='';
+      const p=parse(r.text,total);
+      if(!p.error&&p.count<2)r.side='single';
+      render();
+      const updated=$('ranges').querySelector(`[data-input="${r.id}"]`);
+      if(updated){updated.focus();updated.setSelectionRange(updated.value.length,updated.value.length);}
+    }));
+
+    $('ranges').querySelectorAll('[data-colour]').forEach(btn=>btn.addEventListener('click',()=>{
+      ranges.find(x=>x.id===Number(btn.dataset.id)).colour=btn.dataset.colour;render();
+    }));
+
+    $('ranges').querySelectorAll('[data-side]').forEach(btn=>btn.addEventListener('click',()=>{
+      const r=ranges.find(x=>x.id===Number(btn.dataset.id));
+      if(btn.dataset.side==='double'){
+        const p=parse(r.text,total),i=ranges.indexOf(r);
+        if(p.error||overlapError(i,p)||p.count<2){
+          r.side='single';r.info='Double-sided printing isn’t available for a single-page selection.';
+          renderRanges();return;
+        }
+      }
+      r.side=btn.dataset.side;r.info='';render();
+    }));
+
+    $('ranges').querySelectorAll('[data-delete]').forEach(btn=>btn.addEventListener('click',()=>{
+      ranges=ranges.filter(r=>r.id!==Number(btn.dataset.delete));render();
+    }));
+  }
+
+  function calculate(){
+    let pages=0,sheets=0,cost=0,valid=true;
+    if(mode==='all'){
+      pages=current().pages;
+      sheets=all.side==='double'?Math.ceil(pages/2):pages;
+      cost=pages*rate(all.colour,all.side);
+    }else{
+      ranges.forEach((r,i)=>{
+        const p=parse(r.text,current().pages);
+        if(p.error||overlapError(i,p)){valid=false;return;}
+        if(p.count<2&&r.side==='double'){valid=false;return;}
+        pages+=p.count;
+        sheets+=r.side==='double'?Math.ceil(p.count/2):p.count;
+        cost+=p.count*rate(r.colour,r.side);
+      });
+    }
+    return {pages,sheets,cost,valid:valid&&pages>0};
+  }
+
+  function render(){
+    const n=current().pages;
+    $('alltab').classList.toggle('active',mode==='all');
+    $('customtab').classList.toggle('active',mode==='custom');
+    $('allpanel').classList.toggle('hidden',mode!=='all');
+    $('custompanel').classList.toggle('hidden',mode!=='custom');
+    $('allcount').textContent=n+' pages in this document';
+    $('allbw').classList.toggle('active',all.colour==='bw');
+    $('allcolour').classList.toggle('active',all.colour==='colour');
+    $('allsingle').classList.toggle('active',all.side==='single');
+    $('alldouble').classList.toggle('active',all.side==='double');
+    $('allsinglerate').textContent=money(rate(all.colour,'single'));
+    $('alldoublerate').textContent=money(rate(all.colour,'double'));
+    $('alldouble').classList.toggle('disabled',n<2);
+    $('alldouble').setAttribute('aria-disabled',String(n<2));
+    $('allinfo').textContent=all.info;
+    $('allinfo').classList.toggle('hidden',!all.info);
+    if(mode==='custom')renderRanges();
+
+    const c=calculate();
+    $('pages').textContent=c.pages+' pages';
+    $('sheets').textContent=c.sheets+' sheets';
+    $('percopy').textContent=money(c.cost);
+    $('total').textContent=money(c.cost*copies);
+    $('copies').textContent=copies;
+    $('pay').textContent='Pay '+money(c.cost*copies)+' with UPI →';
+    $('pay').disabled=!c.valid;
+    $('minus').disabled=copies<=1;
+  }
+
+  $('alltab').addEventListener('click',()=>{mode='all';render();});
+  $('customtab').addEventListener('click',()=>{mode='custom';render();});
+  $('allbw').addEventListener('click',()=>{all.colour='bw';render();});
+  $('allcolour').addEventListener('click',()=>{all.colour='colour';render();});
+  $('allsingle').addEventListener('click',()=>{all.side='single';all.info='';render();});
+  $('alldouble').addEventListener('click',()=>{
+    if(current().pages<2){
+      all.side='single';
+      all.info='Double-sided printing isn’t available for a single-page document.';
+      render();return;
+    }
+    all.side='double';all.info='';render();
+  });
+  $('add').addEventListener('click',()=>{ranges.push({id:nextRange++,text:'',colour:'bw',side:'single',info:''});render();});
+  $('minus').addEventListener('click',()=>{copies=Math.max(1,copies-1);render();});
+  $('plus').addEventListener('click',()=>{copies=Math.min(99,copies+1);render();});
+
+  $('files').addEventListener('change',e=>{
+    [...e.target.files].forEach(file=>{
+      if(file.size>25*1024*1024)return;
+      docs.forEach(d=>d.selected=false);
+      const size=file.size<1048576?(file.size/1024).toFixed(1)+' KB':(file.size/1048576).toFixed(2)+' MB';
+      docs.push({id:'XR-'+nextDoc++,name:file.name,pages:2,size,selected:true});
+    });
+    resetUnavailableSides();renderDocs();render();e.target.value='';
+  });
+
+  $('pay').addEventListener('click',()=>{
+    const c=calculate();if(!c.valid)return;
+
+    // Frontend demo only. In production, wait for verified gateway success
+    // and use the completion timestamp returned by the backend.
+    const now=new Date();
+    const readyAt=new Date(now.getTime()+12*60*1000);
+    const orderId='QP-'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+
+      String(now.getDate()).padStart(2,'0')+'-'+String(Math.floor(1000+Math.random()*9000));
+    const doc=current();
+
+    $('success-order-id').textContent=orderId;
+    $('success-document').textContent=doc.name;
+    $('success-document-id').textContent=doc.id;
+    $('success-pages').textContent=c.pages+' pages';
+    $('success-copies').textContent=String(copies);
+    $('success-sheets').textContent=c.sheets+' sheets';
+    $('success-per-copy').textContent=money(c.cost);
+    $('success-total').textContent=money(c.cost*copies);
+    $('success-eta').textContent=readyAt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+    $('success-eta-date').textContent=readyAt.toLocaleDateString([], {weekday:'short',day:'numeric',month:'short'});
+    $('quickprint').classList.add('hidden');
+    $('success-page').classList.remove('hidden');
+    window.scrollTo({top:0,behavior:'instant'});
+  });
+
+  $('new-order').addEventListener('click',()=>{
+    $('success-page').classList.add('hidden');
+    $('quickprint').classList.remove('hidden');
+    window.scrollTo({top:0,behavior:'instant'});
+  });
+
+  renderDocs();render();
+})();
+</script>
+</body>
+</html>
