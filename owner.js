@@ -15,7 +15,7 @@ const I = {
   play: '<svg class="i" viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><path d="M7 4v16l13-8z"/></svg>',
   chev: '<svg class="i chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>'
 };
-const STATUS = { unpaid: ['b-grey', I.no, 'Not Started'], waiting: ['b-amber', I.hour, 'Waiting for Xerox'], printing: ['b-blue', I.print, 'Printing'], ready: ['b-green', I.ok, 'Collect Now'], collected: ['b-grey', I.ok, 'Collected'], cancelled: ['b-red', I.no, 'Cancelled'] };
+const STATUS = { unpaid: ['b-grey', I.no, 'Not Paid'], waiting: ['b-amber', I.hour, 'Waiting to print'], printing: ['b-blue', I.print, 'Printing now'], ready: ['b-teal', I.ok, 'Ready for pickup'], collected: ['b-grey', I.ok, 'Collected'], cancelled: ['b-red', I.no, 'Cancelled'] };
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 2600); }
 
 /* demo orders on first open (until "Clear demo orders") */
@@ -37,6 +37,8 @@ const tokNum = o => o.token ? +o.token.slice(3) : 1e9;
 function paintHome() {
   const s = QP.load(), st = s.settings, today = QP.today();
   $('bn').textContent = st.shop;
+  const manual = st.printMode === 'manual';
+  $('modeToggle').checked = !manual;
   $('printerSel').innerHTML = st.printers.map(p => `<option ${p === st.printer ? 'selected' : ''}>${esc(p)} · Connected</option>`).join('');
   $('stop').innerHTML = s.paused ? I.play + 'Start Again' : I.stop + 'Stop Everything';
   $('stop').className = 'btn stopbtn ' + (s.paused ? 'green' : 'red');
@@ -45,6 +47,7 @@ function paintHome() {
   $('demoClear').classList.toggle('hide', !s.orders.some(o => o.id.startsWith('demo_')));
   const live = o => ['unpaid', 'waiting', 'printing', 'ready'].includes(o.status);
   $('nWait').textContent = s.orders.filter(o => o.status === 'waiting').length;
+  $('waitHint').textContent = st.printMode === 'manual' ? 'Owner starts each order' : 'Starts automatically';
   $('nPrint').textContent = s.orders.filter(o => o.status === 'printing').length;
   $('nReady').textContent = s.orders.filter(o => o.status === 'ready').length;
   document.querySelectorAll('.stat').forEach(b => b.classList.toggle('sel', b.dataset.f === filter));
@@ -63,7 +66,7 @@ function paintHome() {
   if (q) list = list.filter(o => o.token && o.token.slice(3).startsWith(q));
 
   if (!list.length) {
-    $('orders').innerHTML = `<div class="empty">${q ? 'No order with token XR-' + esc(q) : tab === 'hist' ? 'No finished orders yet.' : filter ? 'No orders here right now.' : 'No orders yet. New orders appear here by themselves.'}</div>`;
+    $('orders').innerHTML = `<div class="empty">${q ? 'No order with token XR-' + esc(q) : tab === 'hist' ? 'No finished orders yet.' : filter ? 'No orders here right now.' : 'No orders yet. New paid orders will appear here.'}</div>`;
     return;
   }
   const autoOpen = openId === null ? (list.find(o => o.status === 'printing') || list.find(o => QP.canStart(s, o)) || {}).id : openId;
@@ -93,16 +96,37 @@ function paintNow(s) {
   if (p) {
     const pages = QP.orderPages(p), d = QP.printMs(s, p), pct = Math.min(97, Math.round((Date.now() - p.startedAt) / d * 100));
     $('now').className = 'now';
-    $('now').innerHTML = `<div class="ic">${I.print}</div><div class="t"><small>Printing now · automatic</small><b>${p.token}</b><span>${plural(p.docs.length, 'file')} · ${plural(pages, 'page')}</span>${next ? `<span class="nx">Next: ${next.token}</span>` : ''}</div>
+    $('now').innerHTML = `<div class="ic">${I.print}</div><div class="t"><small>Printing now</small><b>${p.token}</b><span>${plural(p.docs.length, 'file')} · ${plural(pages, 'page')}</span>${next ? `<span class="nx">Next: ${next.token}</span>` : ''}</div>
       <div class="big"><div class="pg lg" data-start="${p.startedAt}" data-dur="${d}"><i style="width:${pct}%"></i></div><span class="left" data-left="${p.startedAt + d}">${leftText(p.startedAt + d)}</span></div>`;
   } else {
-    $('now').className = 'now idle';
-    $('now').innerHTML = `<div class="ic">${I.print}</div><div class="t"><small>Printing now · automatic</small><span>${s.paused ? 'Stopped. New orders will not start.' : next ? 'Starting ' + next.token + '…' : 'Waiting for the next paid order'}</span></div>`;
+    const manual = s.settings.printMode === 'manual';
+    const manualNext = manual && next && QP.canStart(s, next);
+    $('now').className = 'now idle' + (manualNext ? ' manual-next' : '');
+    if (manual && next) {
+      const action = manualNext ? `<button class="btn sm next-action" data-start-order="${esc(next.id)}">${I.print}Print now</button>` : '';
+      const message = s.paused ? 'Printing is paused. Select Start Again to continue.' : 'Wait for the current print to finish.';
+      $('now').innerHTML = `<div class="ic">${I.hour}</div><div class="t"><small>${manualNext ? 'Next paid order' : 'Next in queue'}</small><b>${esc(next.token)}</b><span>${plural(next.docs.length, 'file')} · ${plural(QP.orderPages(next), 'page')} · 1 of ${q.length} in queue</span>${action ? '' : `<span class="nx">${message}</span>`}</div>${action}`;
+      return;
+    }
+    const message = s.paused ? 'Printing is paused. Select Start Again to continue.'
+      : manual ? 'Paid orders will wait here until you start them.'
+      : next ? `${next.token} will start automatically.` : 'Waiting for the next paid order.';
+    $('now').innerHTML = `<div class="ic">${I.print}</div><div class="t"><small>Next step</small><span>${message}</span></div>`;
   }
 }
+$('now').addEventListener('click', e => {
+  const button = e.target.closest('[data-start-order]'); if (!button) return;
+  const order = QP.setStatus(button.dataset.startOrder, 'printing');
+  if (order) toast(`${order.token} is printing`);
+  paintHome();
+});
 function subText(o, s) {
   if (o.status === 'unpaid') return 'Waiting for payment';
-  if (o.status === 'waiting') { const q = QP.queue(s).filter(x => x.status === 'waiting'), pos = q.findIndex(x => x.id === o.id) + 1; return (pos === 1 ? 'Next · ' : `${pos}${pos === 2 ? 'nd' : pos === 3 ? 'rd' : 'th'} in line · `) + 'ready in about ' + QP.eta(s, o).minutes + ' min'; }
+  if (o.status === 'waiting') {
+    const q = QP.queue(s).filter(x => x.status === 'waiting'), pos = q.findIndex(x => x.id === o.id) + 1;
+    if (s.settings.printMode === 'manual') return pos === 1 ? 'Next in queue' : `${pos} in queue`;
+    return (pos === 1 ? 'Next · ' : `${pos}${pos === 2 ? 'nd' : pos === 3 ? 'rd' : 'th'} in line · `) + 'ready in about ' + QP.eta(s, o).minutes + ' min';
+  }
   if (o.status === 'printing') return leftText(o.startedAt + QP.printMs(s, o));
   if (o.status === 'ready') return 'Ready since ' + QP.time(o.readyAt);
   if (o.status === 'collected') return 'Collected at ' + QP.time(o.collectedAt);
@@ -111,10 +135,12 @@ function subText(o, s) {
 const leftText = end => { const m = Math.max(0, Math.ceil((end - Date.now()) / 60000)); return m <= 1 ? 'Less than 1 min left' : m + ' min left'; };
 function rowAction(o, s) {
   if (o.status === 'unpaid') return `<button class="btn ghost sm" data-act="paid">Mark as Paid</button>`;
-  if (o.status === 'waiting') return `<span class="muted">Starts by itself</span>`;
+  if (o.status === 'waiting') return s.settings.printMode === 'manual'
+    ? ''
+    : `<span class="muted">Starts automatically</span>`;
   if (o.status === 'printing') { const t = o.startedAt, d = QP.printMs(s, o); return `<div class="pg" data-start="${t}" data-dur="${d}"><i style="width:${Math.min(97, Math.round((Date.now() - t) / d * 100))}%"></i></div>`; }
-  if (o.status === 'ready') return `<button class="btn sm" data-act="collected">Handed over</button>`;
-  return `<span class="muted">${o.status === 'collected' ? 'Done' : 'Cancelled'}</span>`;
+  if (o.status === 'ready') return `<button class="btn sm" data-act="collected">Confirm pickup</button>`;
+  return o.status === 'collected' ? '' : `<span class="muted">Cancelled</span>`;
 }
 function details(o, s) {
   const rows = o.docs.map((d, di) => (d.parts || [{ range: d.range, pages: d.pages, color: d.color, duplex: d.duplex }]).map((p, i) => `<div class="dr">
@@ -139,6 +165,7 @@ $('orders').addEventListener('click', e => {
   openId = null; paintHome();
 });
 $('stop').onclick = () => { const p = !S().paused; QP.setPaused(p); toast(p ? 'Everything stopped' : 'Printing can start again'); paintHome(); };
+$('modeToggle').onchange = () => { const mode = $('modeToggle').checked ? 'automatic' : 'manual'; QP.saveSettings({ printMode: mode }); toast(mode === 'manual' ? 'Manual printing' : 'Automatic printing'); paintHome(); };
 $('printerSel').onchange = () => { const p = S().settings.printers[$('printerSel').selectedIndex]; QP.saveSettings({ printer: p }); toast('Printer: ' + p); };
 document.querySelectorAll('.stat').forEach(b => b.onclick = () => { filter = filter === b.dataset.f ? null : b.dataset.f; tab = 'today'; openId = null; paintHome(); });
 $('tToday').onclick = () => { tab = 'today'; openId = null; paintHome(); };

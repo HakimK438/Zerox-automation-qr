@@ -75,19 +75,56 @@ $('fileIn').onchange = e => { add([...e.target.files]); e.target.value = ''; };
 ['dragleave', 'drop'].forEach(n => $('drop').addEventListener(n, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
 $('drop').addEventListener('drop', e => add([...e.dataTransfer.files]));
 
+async function docxToPdf(arrayBuffer) {
+  if (!window.docx?.renderAsync || !window.html2canvas || !window.PDFLib) throw new Error('DOCX conversion is unavailable');
+  const root = document.createElement('div');
+  root.style.cssText = 'position:fixed;left:-100000px;top:0;width:816px;background:#fff;z-index:-1;overflow:visible';
+  document.body.append(root);
+  try {
+    await window.docx.renderAsync(arrayBuffer, root, undefined, { breakPages: true });
+    const sections = [...root.querySelectorAll('section.docx')];
+    if (!sections.length) throw new Error('No document pages were rendered');
+    const pdfDoc = await PDFLib.PDFDocument.create();
+    for (const section of sections) {
+      const canvas = await window.html2canvas(section, { backgroundColor: '#fff', scale: 1 });
+      const image = await pdfDoc.embedJpg(canvas.toDataURL('image/jpeg', .9));
+      const landscape = image.width > image.height, width = landscape ? 842 : 595, height = landscape ? 595 : 842;
+      const page = pdfDoc.addPage([width, height]), scale = Math.min((width - 36) / image.width, (height - 36) / image.height);
+      const w = image.width * scale, h = image.height * scale;
+      page.drawImage(image, { x: (width - w) / 2, y: (height - h) / 2, width: w, height: h });
+    }
+    return await pdfDoc.save();
+  } finally { root.remove(); }
+}
+
 async function add(list) {
   const s = ST();
   for (const f of list) {
-    if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') { toast(f.name + ' is not a PDF'); continue; }
+    const isPdf = /\.pdf$/i.test(f.name) || f.type === 'application/pdf';
+    const isJpg = /\.(jpe?g)$/i.test(f.name) || f.type === 'image/jpeg';
+    const isPng = /\.png$/i.test(f.name) || f.type === 'image/png';
+    const isDocx = /\.docx$/i.test(f.name) || f.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    if (!isPdf && !isJpg && !isPng && !isDocx) { toast('Use a PDF, DOCX, JPG or PNG file.'); continue; }
     if (f.size > MAX_MB * 1048576) { toast(f.name + ' is bigger than ' + MAX_MB + ' MB'); continue; }
     try {
-      const buf = await f.arrayBuffer();
+      let buf = await f.arrayBuffer();
+      if (isDocx) buf = await docxToPdf(buf);
+      else if (isJpg || isPng) {
+        if (!window.PDFLib) throw new Error('Image conversion is unavailable');
+        const pdfDoc = await PDFLib.PDFDocument.create(), imageBytes = new Uint8Array(buf);
+        const image = isPng ? await pdfDoc.embedPng(imageBytes) : await pdfDoc.embedJpg(imageBytes);
+        const landscape = image.width > image.height, width = landscape ? 842 : 595, height = landscape ? 595 : 842;
+        const page = pdfDoc.addPage([width, height]), scale = Math.min((width - 36) / image.width, (height - 36) / image.height);
+        const w = image.width * scale, h = image.height * scale;
+        page.drawImage(image, { x: (width - w) / 2, y: (height - h) / 2, width: w, height: h });
+        buf = await pdfDoc.save();
+      }
       const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf.slice(0)) }).promise;
-      const d = { id: ++uid, name: f.name, size: f.size, pdf, pages: pdf.numPages, color: s.defColor, duplex: s.defDuplex, copies: 1, all: true, sels: [], paper: 'A4', thumb: '', bytes: buf };
+      const d = { id: ++uid, name: f.name, size: f.size, pdf, pages: pdf.numPages, color: s.defColor, duplex: pdf.numPages > 1 && s.defDuplex, copies: 1, all: true, sels: [], paper: 'A4', thumb: '', bytes: buf };
       files.push(d); thumb(d);
       if (!V.d && desk()) { openViewer(d); continue; }
       paint();
-    } catch (e) { toast('Could not open ' + f.name); }
+    } catch (e) { toast(isPdf ? 'Could not open ' + f.name : isDocx ? 'Could not convert ' + f.name + '. Try saving it as PDF.' : 'Could not convert ' + f.name + '.'); }
   }
 }
 async function thumb(d) {
@@ -117,37 +154,49 @@ const newSel = d => ({ text: '', color: d.color, duplex: d.duplex });
 const kb = n => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
 
 /* ================= file cards (plain-language questions) ================= */
-const rate = (color, duplex) => money(ST().prices[(color ? 'col' : 'bw') + (duplex ? '2' : '1')]) + ' a page';
-const tile = (on, act, label, icon, sub = '') => `<button class="tile ${on ? 'on' : ''}" data-a="${act}" aria-pressed="${on}">${icon}<span class="tl">${label}${sub ? `<small>${sub}</small>` : ''}</span></button>`;
+const rate = (color, duplex) => `<b>${money(ST().prices[(color ? 'col' : 'bw') + (duplex ? '2' : '1')])}</b> per page`;
+const tile = (on, act, label, icon, sub = '', disabled = false) => `<button class="tile ${on ? 'on' : ''}" data-a="${act}" aria-pressed="${on}" ${disabled ? 'disabled aria-disabled="true"' : ''}>${icon}<span class="tl">${label}${sub ? `<small>${sub}</small>` : ''}</span></button>`;
 const dot = c => `<span class="dot ${c}"></span>`;
-function choice(color, duplex, k) {
-  return `<div class="qt">Colour or black &amp; white?</div><div class="tiles">${tile(!color, 'bw' + k, 'Black &amp; white', dot('bw'), rate(false, duplex))}${tile(color, 'col' + k, 'Colour', dot('col'), rate(true, duplex))}</div>
-    <div class="qt">One side or both sides?</div><div class="tiles">${tile(!duplex, 'one' + k, 'One side', IC.one, rate(color, false))}${tile(duplex, 'two' + k, 'Both sides', IC.sides, rate(color, true))}</div>`;
+function choice(color, duplex, k, pages) {
+  const onePage = pages === 1;
+  return `<div class="qt">Colour or black &amp; white?</div><div class="tiles">${tile(!color, 'bw' + k, 'Black &amp; white', dot('bw'))}${tile(color, 'col' + k, 'Colour', dot('col'))}</div>
+    <div class="qt">One side or both sides?</div><div class="tiles">${tile(!duplex, 'one' + k, 'One side', IC.one, rate(color, false))}${tile(duplex, 'two' + k, 'Both sides', IC.sides, onePage ? 'One page only' : rate(color, true), onePage)}</div>`;
+}
+function calcRows(d) {
+  const st = ST();
+  const rows = parts(d).filter(p => p.pages > 0).map(p => {
+    const unit = st.prices[(p.color ? 'col' : 'bw') + (p.duplex ? '2' : '1')] || 0;
+    const amount = p.pages * d.copies * unit;
+    const print = `${p.color ? 'Colour' : 'Black &amp; white'} · ${p.duplex ? 'Both sides' : 'One side'}`;
+    const quantity = `${plural(p.pages, 'page')} · ${plural(d.copies, 'copy', 'copies')}`;
+    return `<tr><td><strong>${esc(d.name)}</strong><small>${print}</small></td><td>${quantity}</td><td>${money(unit)} / page</td><td><b>${money(amount)}</b></td></tr>`;
+  }).join('');
+  return rows;
 }
 function card(d) {
   const s = ST(), c = calc(d), ps = parts(d), papers = Object.keys(s.paper).filter(k => s.paper[k]), canRange = s.allowRange && d.pages > 1;
   const viewing = V.d === d && !$('viewer').classList.contains('hide');
   const pagesQ = canRange ? `<div class="q"><div class="qt">Which pages do you want?</div><div class="tiles">${tile(d.all, 'all', 'All pages', IC.all, plural(d.pages, 'page'))}${tile(!d.all, 'custom', 'Some pages', IC.custom, 'Type the page numbers')}</div></div>` : '';
-  const body = (d.all || !canRange) ? `<div class="q">${choice(d.color, d.duplex, '')}</div>` :
+  const body = (d.all || !canRange) ? `<div class="q">${choice(d.color, d.duplex, '', d.pages)}</div>` :
     `<div class="q">${d.sels.map((x, i) => `<div class="part"><div class="ph"><span>Part ${i + 1}</span>${d.sels.length > 1 ? `<button class="xb" style="width:34px;height:34px" data-a="sdel:${i}" aria-label="Remove part ${i + 1}">${IC.x}</button>` : ''}</div>
       <div class="qt">Type the pages</div><input class="field" data-a="range" data-i="${i}" value="${esc(x.text)}" placeholder="Example: 1-5, 8" inputmode="text" aria-label="Pages for part ${i + 1}"><div class="err" data-msg="${i}">${ps[i] && ps[i].err && x.text.trim() ? ps[i].err : ''}</div>
-      <div style="margin-top:12px">${choice(x.color, x.duplex, ':' + i)}</div></div>`).join('')}
+      <div style="margin-top:12px">${choice(x.color, x.duplex, ':' + i, ps[i] ? ps[i].pages : 0)}</div></div>`).join('')}
       <button class="addrow" data-a="sadd" style="margin:0">+ Print other pages in a different way</button></div>`;
   return `<div class="fcard ${viewing ? 'viewing' : ''}" data-id="${d.id}">
     <div class="fhead"><button class="thumb" data-a="view" aria-label="See ${esc(d.name)}">${d.thumb ? `<img src="${d.thumb}" alt="">` : 'PDF'}</button>
-      <div class="t"><span class="n">${esc(d.name)}</span><span class="m">${plural(d.pages, 'page')} · ${kb(d.size)}</span><br><button class="see" data-a="view">${IC.eye}See file</button></div>
-      <button class="xb" data-a="del" aria-label="Remove ${esc(d.name)}">${IC.x}</button></div>
+      <div class="t"><span class="n">${esc(d.name)}</span><span class="m">${plural(d.pages, 'page')} · ${kb(d.size)}</span></div>
+      <div class="factions"><button class="xb" data-a="del" aria-label="Remove ${esc(d.name)}" title="Remove file">${IC.x}</button><button class="see" data-a="view" aria-label="Preview ${esc(d.name)}" title="Preview file">${IC.eye}</button></div></div>
     ${pagesQ}${body}
     ${papers.length > 1 ? `<div class="q"><div class="qt">Paper size</div><div class="tiles">${papers.map(p => tile(d.paper === p, 'paper:' + p, p, '')).join('')}</div></div>` : ''}
-    <div class="q"><div class="copies"><div class="qt">How many copies?</div><div class="st"><button data-a="minus" ${d.copies <= 1 ? 'disabled' : ''} aria-label="Fewer copies">−</button><b>${d.copies}</b><button data-a="plus" ${d.copies >= s.maxCopies ? 'disabled' : ''} aria-label="More copies">+</button></div></div></div>
+    <div class="q"><div class="copies"><div class="qt">Copies</div><div class="st"><button data-a="minus" ${d.copies <= 1 ? 'disabled' : ''} aria-label="Fewer copies">−</button><b>${d.copies}</b><button data-a="plus" ${d.copies >= s.maxCopies ? 'disabled' : ''} aria-label="More copies">+</button></div></div></div>
     <div class="psum"><span data-sum>${plural(c.pages, 'page')} to print</span><b data-price>${money(c.price)}</b></div></div>`;
 }
 function paint() {
   const has = files.length > 0;
   $('drop').classList.toggle('hide', has); $('area').classList.toggle('hide', !has);
-  $('files').innerHTML = has ? `<div class="stp s2"><span class="no">2</span>How should it be printed?</div>` + files.map(card).join('') : '';
+  $('files').innerHTML = has ? `<div class="stp s2"><span class="no">2</span>Print settings</div>` + files.map(card).join('') : '';
   $('stp1no').innerHTML = has ? IC.ok : '1'; $('stp1no').classList.toggle('done', has);
-  $('stp1t').textContent = has ? `Your files (${files.length})` : 'Choose your file'; $('addTop').classList.toggle('hide', !has);
+  $('stp1t').textContent = has ? `Uploaded documents (${files.length})` : 'Upload Documents'; $('addTop').classList.toggle('hide', !has);
   $('layout').classList.toggle('split', desk() && !$('viewer').classList.contains('hide'));
   dock(); dockShow();
 }
@@ -188,6 +237,9 @@ $('files').addEventListener('input', e => {
   if (e.target.dataset.a !== 'range') return;
   const holder = e.target.closest('[data-id]'), d = files.find(x => x.id === +holder.dataset.id), i = +e.target.dataset.i;
   d.sels[i].text = e.target.value;
+  const singlePage = QP.countRange(e.target.value, d.pages) === 1, both = holder.querySelector(`[data-a="two:${i}"]`);
+  if (singlePage) d.sels[i].duplex = false;
+  if (both) { both.disabled = singlePage; both.setAttribute('aria-disabled', String(singlePage)); }
   const c = calc(d), p = parts(d)[i], msg = holder.querySelector(`[data-msg="${i}"]`);
   msg.textContent = p.err && d.sels[i].text.trim() ? p.err : '';
   holder.querySelector('[data-sum]').textContent = `${plural(c.pages, 'page')} to print`;
@@ -286,6 +338,7 @@ const toOrderDoc = d => { const c = calc(d), ps = parts(d).filter(p => p.pages).
   return { name: d.name, size: d.size, pages: c.pages, totalPages: d.pages, range: d.all ? 'all' : ps.map(p => p.range).join(' + '), color: ps.some(p => p.color), duplex: ps.every(p => p.duplex), parts: ps, copies: d.copies, paper: d.paper, price: c.price }; };
 $('pay').onclick = () => {
   const t = totals(); if (t.bad || t.price <= 0) return;
+  $('sheetBreakdown').innerHTML = `<table class="price-table"><thead><tr><th>File &amp; print</th><th>Quantity</th><th>Rate</th><th>Total</th></tr></thead><tbody>${files.map(calcRows).join('')}</tbody></table>`;
   /* TODO(backend): upload the PDFs + settings; the server re-checks pages and price and returns a Razorpay
      payment link (W2 gateway.create_link -> short_url). "Paid" must come from the server, never this page. */
   const o = QP.createOrder(files.map(toOrderDoc));
@@ -305,7 +358,7 @@ function forget() { orderId = null; store('del'); if (location.hash) history.rep
 function clearForm() { files = []; sel = null; closeViewer(true); paint(); }   // the upload form is emptied once the order is placed
 
 /* ================= order / token page ================= */
-const STEPS = [['waiting', 'Waiting'], ['printing', 'Printing'], ['ready', 'Collect']];
+const STEPS = [['waiting', 'Received'], ['printing', 'Printing'], ['ready', 'Ready']];
 const BADGE = { waiting: 'b-amber', printing: 'b-blue', ready: 'b-green', collected: 'b-green', cancelled: 'b-red' };
 const BICON = { waiting: IC.waiting, printing: IC.printing, ready: IC.ok, collected: IC.ok, cancelled: IC.x };
 const partChips = p => `<div class="chips">${[p.range === 'all' ? 'All pages' : 'Pages ' + p.range, p.color ? 'Colour' : 'Black & white', p.duplex ? 'Both sides' : 'One side'].map(x => `<span>${esc(x)}</span>`).join('')}</div>`;
@@ -318,17 +371,31 @@ function fillOrder() {
   $('tstat').className = 'badge ' + BADGE[o.status];
   $('tstat').innerHTML = BICON[o.status] + QP.LABEL[o.status];
   $('track').innerHTML = STEPS.map(([k, n], i) => `<div class="${i < at || at === 3 ? 'done' : i === at ? 'now s-' + k : ''}${at >= 0 && at < 2 && i === at + 1 ? ' run s-' + STEPS[at][0] : ''}"><i>${i < at || at === 3 ? IC.ok : IC[k]}</i>${n}</div>`).join('');
-  const live = o.status === 'waiting' || o.status === 'printing', e = live ? QP.eta(s, o) : null;
-  $('fTime').textContent = live ? 'Ready in about ' + mins(e.minutes) : o.status === 'ready' ? 'Ready now. Please collect.' : o.status === 'cancelled' ? 'This order was cancelled' : 'Collected. Thank you!';
-  $('doneList').innerHTML = o.docs.map(d => `<div class="tkd"><div style="min-width:0"><b>${esc(d.name)}</b><div class="chips">${(d.parts || [{ range: d.range, pages: d.pages, color: d.color, duplex: d.duplex }]).map(p => `<span>${esc(p.range === 'all' ? 'All pages' : 'Pages ' + p.range)}</span><span>${p.color ? 'Colour' : 'Black & white'}</span><span>${p.duplex ? 'Both sides' : 'One side'}</span>`).join('')}<span>${plural(d.copies, 'copy', 'copies')}</span></div></div><span>${money(d.price)}</span></div>`).join('');
+  const live = o.status === 'waiting' || o.status === 'printing', manualWait = o.status === 'waiting' && st.printMode === 'manual', e = live ? QP.eta(s, o) : null;
+  const eta = $('fTime').closest('.eta');
+  eta.classList.toggle('queued', manualWait); eta.classList.toggle('estimated', !!e && !manualWait); eta.classList.toggle('is-ready', o.status === 'ready');
+  $('fTime').textContent = live ? 'Estimated ready in about ' + mins(e.minutes) : o.status === 'ready' ? 'Ready for pickup. Please come to the shop.' : o.status === 'cancelled' ? 'This order was cancelled.' : 'Collected. Thank you!';
+  $('doneList').innerHTML = o.docs.map(d => {
+    const chips = (d.parts || [{ range: d.range, pages: d.pages, color: d.color, duplex: d.duplex }]).map(p => `<span class="chip-range">${esc(p.range === 'all' ? 'All pages' : 'Pages ' + p.range)}</span><span class="${p.color ? 'chip-colour' : 'chip-bw'}">${p.color ? 'Colour' : 'Black & white'}</span><span class="${p.duplex ? 'chip-duplex' : 'chip-single'}">${p.duplex ? 'Both sides' : 'One side'}</span>`).join('');
+    return `<div class="tkd"><div style="min-width:0"><b>${esc(d.name)}</b><div class="chips">${chips}<span class="chip-copies">${plural(d.copies, 'copy', 'copies')}</span></div></div><span class="file-price">${money(d.price)}</span></div>`;
+  }).join('');
   $('tAmount').textContent = money(o.total);
-  $('where').textContent = st.shop + ', ' + st.address;
+  $('ratingBox').classList.toggle('hide', !o.paidAt);
+  $('ratingTitle').textContent = o.rating ? 'Thank you for your rating' : 'Rate your order';
+  $('ratingStars').innerHTML = [1, 2, 3, 4, 5].map(n => `<button type="button" class="${o.rating && n <= o.rating ? 'selected' : ''}" data-rating="${n}" aria-label="${n} out of 5 stars" aria-pressed="${o.rating === n}" ${o.rating ? 'disabled' : ''}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.8 2.8 5.7 6.3.9-4.6 4.5 1.1 6.3-5.6-3-5.6 3 1.1-6.3-4.6-4.5 6.3-.9z"/></svg></button>`).join('');
+  $('ratingMessage').textContent = o.rating ? `You rated this order ${o.rating} out of 5.` : 'Tap a star to rate your experience.';
+  $('where').textContent = st.shop;
   $('whereHours').textContent = 'Open ' + t12(st.open) + ' – ' + t12(st.close);
   $('whereCall').textContent = st.phone ? 'Call ' + st.phone : ''; $('whereCall').href = 'tel:' + String(st.phone).replace(/[^+\d]/g, '');
   document.title = (o.status === 'ready' ? 'Collect now · ' : '') + o.token + ' · ' + s.settings.shop;
   if (o.status === 'ready' && fillOrder.last !== 'ready') { try { navigator.vibrate?.([200, 100, 200]); } catch (x) {} }
   fillOrder.last = o.status;
 }
+$('ratingStars').addEventListener('click', e => {
+  const button = e.target.closest('[data-rating]'); if (!button) return;
+  if (!QP.rateOrder(orderId, Number(button.dataset.rating))) return toast('Could not save your rating');
+  fillOrder();
+});
 $('backPrint').onclick = () => { go('print'); paintShop(); };
 
 /* ================= start-up and live updates ================= */

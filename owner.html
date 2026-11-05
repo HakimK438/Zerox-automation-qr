@@ -22,9 +22,18 @@ main{padding:28px 40px 60px;min-width:0;max-width:none;width:100%}
 .head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px}
 .head h1{font-size:2.1rem;font-weight:800;letter-spacing:-.02em;flex:1;line-height:1.15}
 .head h1 small{display:block;font-size:.95rem;color:var(--mute);font-weight:500;letter-spacing:0}
+.mode-control{display:flex;align-items:center;gap:12px;color:var(--ink2);font-size:.9rem;font-weight:600}
+.mode-switch{position:relative;display:inline-flex;align-items:center;gap:9px;white-space:nowrap}
+.mode-switch input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.mode-switch .mode-track{width:42px;height:24px;border-radius:99px;background:#a0aec0;display:block;transition:background .15s}
+.mode-switch .mode-track i{display:block;width:18px;height:18px;margin:3px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .15s}
+.mode-switch input:checked+.mode-track{background:var(--blue)}
+.mode-switch input:checked+.mode-track i{transform:translateX(18px)}
+.mode-switch input:focus-visible+.mode-track{outline:3px solid #93b4f8;outline-offset:2px}
 .pill{display:inline-flex;align-items:center;gap:10px;padding:0 16px;height:52px;border-radius:12px;font-weight:500;border:1.5px solid}
 .pill.ok{background:var(--green-l);color:var(--green);border-color:#b7e1c6}
 .pill.off{background:var(--red-l);color:var(--red);border-color:#f5c2c2}
+.b-teal{background:#e5f4f3;color:#0f766e}
 .pill i{width:10px;height:10px;border-radius:50%;background:currentColor}
 .pill select{appearance:none;border:0;background:transparent;font-weight:500;color:inherit;cursor:pointer;padding-right:2px;font-size:1rem}
 .stopbtn{height:52px;font-size:1.05rem;padding:0 22px}
@@ -36,13 +45,19 @@ main{padding:28px 40px 60px;min-width:0;max-width:none;width:100%}
 .now .t{flex:1;min-width:200px}.now .t small{color:var(--mute);font-size:.88rem;display:block}.now .t b{font-size:1.5rem;font-weight:700;margin-right:10px}
 .now .t span{color:var(--ink2)}
 .now.idle{border:1.5px dashed var(--line2);background:transparent}.now.idle .ic{background:#eceff5;color:var(--mute)}
+.now.manual-next{border:2px solid var(--blue);background:#fff}
+.now.manual-next .ic{background:var(--blue-l);color:var(--blue)}
+.now.manual-next .t b{display:block;font-size:1.35rem;margin:2px 0}
+.now.manual-next .t span{display:inline-block}
+.next-action{min-height:48px;min-width:140px}
 .bar{height:8px;border-radius:9px;background:#e3eaf6;margin-top:10px;overflow:hidden}.bar i{display:block;height:100%;background:var(--blue);border-radius:9px;transition:width 1s}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:30px}
 .stat{border-radius:18px;padding:20px 22px;display:flex;gap:16px;align-items:center;border:1.5px solid transparent;text-align:left;transition:.12s}
 .stat:hover{transform:translateY(-1px)}
 .stat .ic{width:58px;height:58px;border-radius:16px;background:rgba(255,255,255,.7);display:grid;place-items:center;flex:none}.stat .ic svg.i{width:30px;height:30px}
 .stat span{font-weight:500;font-size:1.08rem;display:block}.stat b{font-size:2.6rem;line-height:1.05;color:var(--ink);font-weight:800}
-.s-wait{background:var(--amber-l);color:var(--amber)}.s-print{background:#e3edfa;color:var(--blue)}.s-ready{background:var(--green-l);color:var(--green)}
+.stat small{display:block;color:var(--ink2);font-size:.76rem;line-height:1.25;font-weight:400;margin-top:3px}
+.s-wait{background:var(--amber-l);color:var(--amber)}.s-print{background:#e3edfa;color:var(--blue)}.s-ready{background:#e5f4f3;color:#0f766e}
 .stat.sel{border-color:currentColor}
 .sec{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
 .sec .tt{flex:1;min-width:200px}.sec h2{font-size:1.6rem;font-weight:800}
@@ -128,7 +143,7 @@ main{padding:28px 40px 60px;min-width:0;max-width:none;width:100%}
   .brand{margin:0 auto 0 0}.brand span,.navfoot{display:none}.logo{width:40px;height:40px}
   .nv{width:auto;margin:0;padding:10px 14px}.nv .lk{display:none}
   main{padding:16px 14px 50px}
-  .head h1{font-size:1.6rem;flex-basis:100%}.pill,.stopbtn{flex:1;justify-content:center}
+  .head h1{font-size:1.6rem;flex-basis:100%}.mode-control{flex:1 1 100%;justify-content:space-between}.pill,.stopbtn{flex:1;justify-content:center}
   .stats{gap:10px}.stat{flex-direction:column;align-items:flex-start;padding:14px;gap:8px}.stat .ic{width:42px;height:42px}.stat .ic svg.i{width:22px;height:22px}.stat b{font-size:2rem}.stat span{font-size:.92rem;line-height:1.2}
   .sec .tabs{flex:1}.sec .tabs button{flex:1;justify-content:center}.search{width:100%}
   .cols{display:none}
@@ -149,7 +164,7 @@ main{padding:28px 40px 60px;min-width:0;max-width:none;width:100%}
 .stats{gap:14px;margin-bottom:22px}.stat{padding:14px 18px}.stat .ic{width:46px;height:46px}.stat .ic svg.i{width:24px;height:24px}.stat b{font-size:2.1rem}
 .now{padding:14px 18px;margin-bottom:16px}
 .ord{margin-top:8px;border-radius:12px}
-.ord.st-waiting{border-left:5px solid var(--amber-b)}.ord.st-printing{border-left:5px solid var(--blue)}.ord.st-ready{border-left:5px solid var(--green-b)}.ord.st-unpaid{border-left:5px solid #f0a3a3}.ord.st-collected,.ord.st-cancelled{border-left:5px solid #cfd6e2}
+.ord.st-waiting{border-left:5px solid var(--amber-b)}.ord.st-printing{border-left:5px solid var(--blue)}.ord.st-ready{border-left:5px solid #0f766e}.ord.st-unpaid{border-left:5px solid #f0a3a3}.ord.st-collected,.ord.st-cancelled{border-left:5px solid #cfd6e2}
 .ord.open{border-width:1.5px;border-left-width:5px}
 .line{padding:11px 18px}
 .tk{font-size:1.2rem}
@@ -205,6 +220,7 @@ main{padding:28px 40px 60px;min-width:0;max-width:none;width:100%}
 <section id="home">
   <div class="head">
     <h1>Home</h1>
+    <div class="mode-control"><span>Print mode</span><label class="mode-switch"><span>Manual</span><input id="modeToggle" type="checkbox" role="switch" aria-label="Automatic printing"><span class="mode-track" aria-hidden="true"><i></i></span><span>Automatic</span></label></div>
     <label class="pill ok" id="pill"><i></i><select id="printerSel" aria-label="Printer"></select><svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></label>
     <button class="btn red stopbtn" id="stop"></button>
   </div>
@@ -212,9 +228,9 @@ main{padding:28px 40px 60px;min-width:0;max-width:none;width:100%}
 
   <div id="now"></div>
   <div class="stats">
-    <button class="stat s-wait" data-f="waiting"><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M5 3h14M5 21h14M7 3v3a5 5 0 0 0 2 4l3 2-3 2a5 5 0 0 0-2 4v3M17 3v3a5 5 0 0 1-2 4l-3 2 3 2a5 5 0 0 1 2 4v3"/></svg></div><div><span>Waiting for Xerox</span><b id="nWait">0</b></div></button>
-    <button class="stat s-print" data-f="printing"><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M7 8V3h10v5"/><rect x="3" y="8" width="18" height="9" rx="2"/><path d="M7 14h10v7H7z"/><circle cx="17.5" cy="11.5" r=".6"/></svg></div><div><span>Printing</span><b id="nPrint">0</b></div></button>
-    <button class="stat s-ready" data-f="ready"><div class="ic"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></div><div><span>Collect Now</span><b id="nReady">0</b></div></button>
+    <button class="stat s-wait" data-f="waiting"><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h10M4 10h10M4 15h6"/><circle cx="17" cy="16" r="4"/><path d="M17 14v2l1.5 1"/></svg></div><div><span>Waiting to print</span><b id="nWait">0</b><small id="waitHint">Paid orders in queue</small></div></button>
+    <button class="stat s-print" data-f="printing"><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M7 8V3h10v5"/><rect x="3" y="8" width="18" height="9" rx="2"/><path d="M7 14h10v7H7z"/><circle cx="17.5" cy="11.5" r=".6"/></svg></div><div><span>Printing now</span><b id="nPrint">0</b><small>Current print job</small></div></button>
+    <button class="stat s-ready" data-f="ready"><div class="ic"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></div><div><span>Ready for pickup</span><b id="nReady">0</b><small>Waiting for customer</small></div></button>
   </div>
 
   <div class="sec">
@@ -256,9 +272,10 @@ main{padding:28px 40px 60px;min-width:0;max-width:none;width:100%}
           <button class="btn ghost" id="printQr" type="button" style="margin-top:12px;min-height:46px">Print QR poster</button></div></div></div>
 
       <div class="box"><h3><svg class="i" viewBox="0 0 24 24"><path d="M6 3h12M6 8h12M14 21 6 13h3a5 5 0 0 0 0-10"/></svg>Print Prices (per page)</h3>
-        <div class="ptab"><span></span><span class="h">Single-sided</span><span class="h">Double-sided</span>
+        <div class="ptab"><span></span><span class="h">One side</span><span class="h">Both sides</span>
           <b>Black &amp; White</b><label class="money"><span>₹</span><input class="field" id="p_bw1" type="number" min="0" step="0.5" aria-label="Black and white single-sided"></label><label class="money"><span>₹</span><input class="field" id="p_bw2" type="number" min="0" step="0.5" aria-label="Black and white double-sided"></label>
           <b>Colour</b><label class="money"><span>₹</span><input class="field" id="p_col1" type="number" min="0" step="0.5" aria-label="Colour single-sided"></label><label class="money"><span>₹</span><input class="field" id="p_col2" type="number" min="0" step="0.5" aria-label="Colour double-sided"></label></div>
+        <p class="note">Rates apply to each printed page. With both sides selected, both the front and back count as pages.</p>
         </div>
 
       <div class="box"><h3><svg class="i" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>Print Options</h3>

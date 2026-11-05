@@ -11,16 +11,18 @@ const QP = (() => {
     settings: {
       shop: 'Xerox Center', address: 'Shop 4, Example Road, Mumbai', phone: '+91 98765 43210', open: '09:00', close: '21:00', rating: 4.7, reviews: 126, photo: '',
       printer: 'Xerox Printer', printers: ['Xerox Printer', 'HP LaserJet M1005', 'Canon iR 2006N'],
-      prices: { bw1: 3, bw2: 3, col1: 8, col2: 8 },           // ₹ per printed page, set by the owner
+      prices: { bw1: 3, bw2: 5, col1: 10, col2: 10 },         // per-printed-page rates for all print options
+      pricingVersion: 2,
       paper: { A4: true, A3: false }, maxCopies: 50, allowRange: true,
       defColor: false, defDuplex: false,
+      printMode: 'automatic',
       ppm: 20,                                                 // printer pages per minute (wait-time estimate)
       payMode: 'test', razorpayLink: '', upiId: '',
       password: '1234', publicUrl: '', cleanup: 'same-day'
     },
     orders: [], counter: { date: '', n: 100 }, paused: false, demo: false
   };
-  const LABEL = { unpaid: 'Payment Not Received', waiting: 'Waiting for Xerox', printing: 'Printing', ready: 'Collect Now', collected: 'Collected', cancelled: 'Cancelled' };
+  const LABEL = { unpaid: 'Payment Not Received', waiting: 'Order received', printing: 'Printing', ready: 'Ready for pickup', collected: 'Collected', cancelled: 'Cancelled' };
 
   const clone = o => JSON.parse(JSON.stringify(o));
   const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
@@ -31,7 +33,13 @@ const QP = (() => {
       const s = JSON.parse(localStorage.getItem(KEY));
       if (s && s.settings) {
         const d = clone(DEF);
-        return { ...d, ...s, settings: { ...d.settings, ...s.settings, prices: { ...d.settings.prices, ...s.settings.prices }, paper: { ...d.settings.paper, ...s.settings.paper } } };
+        const oldPrices = s.settings.prices || {};
+        const migrateColourDefaults = !s.settings.pricingVersion && oldPrices.col1 === 8 && oldPrices.col2 === 8;
+        const settings = { ...d.settings, ...s.settings,
+          prices: { ...d.settings.prices, ...oldPrices, ...(migrateColourDefaults ? { col1: 10, col2: 10 } : {}) },
+          paper: { ...d.settings.paper, ...s.settings.paper } };
+        if (migrateColourDefaults) save({ ...s, settings: { ...settings, pricingVersion: 2 } });
+        return { ...d, ...s, settings };
       }
     } catch (e) {}
     return clone(DEF);
@@ -103,6 +111,12 @@ const QP = (() => {
     if (o && o.status === 'unpaid') { o.status = 'waiting'; o.paidAt = Date.now(); o.date = today(); o.token = nextToken(s); }
     return o;
   });
+  const rateOrder = (id, rating) => update(s => {
+    const o = s.orders.find(x => x.id === id);
+    if (!o || !o.paidAt || o.rating || !Number.isInteger(rating) || rating < 1 || rating > 5) return null;
+    o.rating = rating; o.ratedAt = Date.now();
+    return o;
+  });
   const removeUnpaid = id => update(s => { s.orders = s.orders.filter(o => !(o.id === id && o.status === 'unpaid')); });
   const setStatus = (id, to) => update(s => {
     const o = s.orders.find(x => x.id === id); if (!o) return null;
@@ -120,7 +134,7 @@ const QP = (() => {
     const s = load(), now = Date.now(); let changed = false;
     const p = s.orders.find(o => o.status === 'printing');
     if (p && now - p.startedAt >= printMs(s, p)) { p.status = 'ready'; p.readyAt = now; changed = true; }
-    if (!s.paused && !s.orders.some(o => o.status === 'printing')) {
+    if (s.settings.printMode !== 'manual' && !s.paused && !s.orders.some(o => o.status === 'printing')) {
       const next = queue(s).find(o => o.status === 'waiting');
       if (next) { next.status = 'printing'; next.startedAt = now; changed = true; }
     }
@@ -193,6 +207,6 @@ const QP = (() => {
   const plural = (n, w, ws) => n + ' ' + (n === 1 ? w : (ws || w + 's'));
 
   return { LABEL, load, onChange, today, countRange, price, sheets, orderPages, queue, canStart, eta,
-    putFile, getFile, demoPdf, createOrder, markPaid, removeUnpaid, setStatus, setPaused, autoStep, printMs, getOrder, saveSettings, seedDemo, clearDemo,
+    putFile, getFile, demoPdf, createOrder, markPaid, rateOrder, removeUnpaid, setStatus, setPaused, autoStep, printMs, getOrder, saveSettings, seedDemo, clearDemo,
     money, time, dateLabel, esc, plural };
 })();
