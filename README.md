@@ -2,7 +2,7 @@
 
 Open `index.html` in a browser, or host it on any static host and point your shop QR code at the URL.
 
-## Shop settings
+## 
 Edit the `CONFIG` block at the top of the script in `index.html`: shop name, UPI ID, payee name,
 file-size limit, per-side prices, double-sided per-sheet prices, additional charges.
 
