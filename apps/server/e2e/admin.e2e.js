@@ -41,7 +41,7 @@ const check = (cond, msg) => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${msg}`);
   const pdfPath = path.join(dataDir, 'notes.pdf');
   fs.writeFileSync(pdfPath, await makePdf(3));
 
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
   const watchErrors = (page, label) => {
     page.on('pageerror', (e) => problems.push(`${label} page error: ${e.message}`));
     page.on('console', (m) => {
@@ -74,7 +74,7 @@ const check = (cond, msg) => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${msg}`);
   const cookies = await adminCtx.cookies();
   const adminCookie = cookies.find((c) => c.name === 'qp_admin');
   check(adminCookie && adminCookie.httpOnly && adminCookie.sameSite === 'Strict', 'admin cookie is HttpOnly + SameSite=Strict');
-  check(/Nothing to do/.test(await a.textContent('#orders')), 'empty queue');
+  check(/No orders right now/.test(await a.textContent('#orders')), 'empty queue');
 
   /* ---------- customer orders and pays ---------- */
   const custCtx = await browser.newContext({ ...devices['Pixel 7'] });
@@ -124,7 +124,7 @@ const check = (cond, msg) => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${msg}`);
   await a.fill('#m_pin', pin);
   await a.click('#mok');
   check(await until(async () => a.isHidden('#modal')), 'right PIN accepted');
-  check(await until(async () => /Nothing to do/.test(await a.textContent('#orders'))), 'order leaves the "Now" list');
+  check(await until(async () => /No orders right now/.test(await a.textContent('#orders'))), 'order leaves the "Now" list');
   await c.reload();
   check(await until(async () => !(await c.textContent('body')).includes(pin)), 'customer page no longer shows the PIN after pickup');
   check(await until(async () => c.isVisible('#newOrder')), 'customer sees "Start a new order" after pickup');
@@ -151,16 +151,7 @@ const check = (cond, msg) => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${msg}`);
   check(pricing.rates.bw1 === 200, 'new B&W price live for customers (₹2)');
   await a.screenshot({ path: path.join(SHOTS, 'a3-settings.png'), fullPage: true });
 
-  /* ---------- reports ---------- */
-  await a.click('[data-page="reports"]');
-  await until(async () => (await a.textContent('#repCards')).includes('Money received'));
-  check((await a.textContent('#repCards')).includes('₹9'), 'report shows ₹9 received');
-  check(await until(async () => (await a.textContent('#audit')).includes('Changed prices')), 'activity log lists the price change');
-  check(await until(async () => (await a.textContent('#recon')).includes('Received from Paytm')), 'reconciliation shown');
-  check(/Nothing\. Every paid order/.test(await a.textContent('#problems')), 'no problems listed');
-  const csv = await a.evaluate(() => fetch(document.getElementById('csv').href).then((r) => r.text())).catch(() => null);
-  check(csv === null || csv.startsWith('date,token'), 'CSV download link works');
-  await a.screenshot({ path: path.join(SHOTS, 'a4-reports.png'), fullPage: true });
+  check(await a.$('[data-page="reports"]') === null, 'Reports page is gone');
 
   /* ---------- print agent: pair from the dashboard, enable a printer, automatic printing ---------- */
   const AGENT = path.resolve(SRV, '../print-agent');
@@ -190,7 +181,7 @@ const check = (cond, msg) => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${msg}`);
   check(await until(async () => (await a.textContent('#printerList')).includes('HP LaserJet M404'), 20000), 'printer discovered by the agent appears in Settings');
   await a.check('#printerList [data-k="enabled"]');
   await a.click('#printerList [data-save]');
-  check(await until(async () => /1 printer ready/.test(await a.textContent('#pill')), 20000), 'header shows "1 printer ready"');
+  check(await until(async () => /Printer ready/.test(await a.textContent('#pill')), 20000), 'header shows "Printer ready"');
   await a.$eval('#printersBox', (el) => el.scrollIntoView());
   await a.screenshot({ path: path.join(SHOTS, 'a5-printers.png') });
   await a.click('[data-page="home"]');
@@ -210,7 +201,7 @@ const check = (cond, msg) => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${msg}`);
   check(await until(async () => /Ready for pickup/.test(await c3.textContent('#fTime')), 20000), 'automatic mode: printed by the agent, customer sees "Ready for pickup" with no click in the shop');
   const sumatra = fs.readFileSync(process.env.QP_FAKE_SUMATRA_LOG, 'utf8');
   check(sumatra.includes('"-print-to","HP LaserJet M404"'), 'SumatraPDF was asked to print on the chosen printer');
-  check(await until(async () => /Ready for pickup/.test(await a.textContent('#orders'))), 'dashboard shows the order as ready');
+  check(await until(async () => /Ready/.test(await a.textContent('#orders'))), 'dashboard shows the order as ready');
   agent.stop();
 
   /* ---------- logout ---------- */

@@ -77,7 +77,8 @@ function createPaymentService({ db, config, paytm, secretBox, logger, settings, 
       amountPaise: p.amount_paise,
       amount: paiseToAmount(p.amount_paise),
       expiresAt: p.expires_at,
-      ...(live && paytm ? {
+      ...(live && paytm?.isTest ? { testMode: true } : {}),
+      ...(live && paytm && !paytm.isTest ? {
         mid: paytm.mid,
         txnToken: p.txn_token,
         host: config.paytm.host,
@@ -204,6 +205,16 @@ function createPaymentService({ db, config, paytm, secretBox, logger, settings, 
       return { outcome: 'bad_checksum', payment: p };
     }
     return { ...(await verify(p.id, source)), payment: p };
+  }
+
+  /** Test mode: the test buttons set the gateway's answer, then the normal verification reads it. */
+  async function settleTest(order, result) {
+    if (!paytm?.isTest) throw unavailable();
+    const p = q.latest.get(order.id);
+    if (!p || p.status !== 'pending') throw conflict('There is no payment waiting. Please start again.');
+    paytm.settle(p.id, p.amount_paise, result === 'success' ? 'TXN_SUCCESS' : 'TXN_FAILURE');
+    const { outcome } = await verify(p.id, 'status_api');
+    return { outcome };
   }
 
   /* ---------- customer status / reopen ---------- */
@@ -382,7 +393,7 @@ function createPaymentService({ db, config, paytm, secretBox, logger, settings, 
   /** Pickup PIN for the order owner's page (decrypted on demand, never logged). */
   const pinFor = (order) => (order.pickup_pin_enc ? secretBox.open(order.pickup_pin_enc) : null);
 
-  return { start, verify, applyStatus, handleNotification, statusFor, reopen, reconcile, requestRefund, refundPayment, checkRefund, pinFor, view };
+  return { start, settleTest, verify, applyStatus, handleNotification, statusFor, reopen, reconcile, requestRefund, refundPayment, checkRefund, pinFor, view };
 }
 
 module.exports = { createPaymentService, FIRST_TOKEN };

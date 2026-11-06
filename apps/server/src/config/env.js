@@ -1,5 +1,6 @@
 'use strict';
 /* Validated runtime configuration. Fails fast on bad config; never ships default secrets. */
+const fs = require('node:fs');
 const path = require('node:path');
 const { z } = require('zod');
 
@@ -22,7 +23,7 @@ const schema = z.object({
   QP_MAX_PAGES_PER_DOC: z.coerce.number().int().min(1).max(5000).default(500),
   // LibreOffice binary for DOC/DOCX/PPT/PPTX -> PDF. Missing binary = office uploads fail politely.
   QP_SOFFICE_PATH: z.string().min(1).default('soffice'),
-  QP_CONVERT_TIMEOUT_MS: z.coerce.number().int().min(5000).max(600000).default(60000),
+  QP_CONVERT_TIMEOUT_MS: z.coerce.number().int().min(5000).max(600000).default(120000),
   QP_OFFICE_CONCURRENCY: z.coerce.number().int().min(1).max(8).default(1),
   QP_FAST_CONCURRENCY: z.coerce.number().int().min(1).max(8).default(2),
   QP_COOKIE_SECURE: bool.optional(),
@@ -33,6 +34,9 @@ const schema = z.object({
   PAYTM_MERCHANT_KEY: z.string().length(16, 'PAYTM_MERCHANT_KEY must be the 16-character merchant key').optional(),
   PAYTM_WEBSITE: z.string().min(1).default('WEBSTAGING'),
   PAYTM_HOST: z.url().default('https://securegw-stage.paytm.in'),
+  // 'test' = built-in test payments (no money, no Paytm account). Refused in production.
+  // Default: test in development when no Paytm keys are set, otherwise paytm.
+  QP_PAYMENT_MODE: z.enum(['paytm', 'test']).optional(),
   QP_PAYMENT_TTL_MIN: z.coerce.number().int().min(5).max(60).default(15),
   QP_ORDER_PAYMENT_WINDOW_MIN: z.coerce.number().int().min(10).max(240).default(30),
   // Serve the customer site from Node (dev, tests, fallback). Caddy serves it in production.
@@ -54,6 +58,17 @@ function parseTrustProxy(value) {
   return v;
 }
 
+/* The installer on Windows does not add LibreOffice to PATH, so look in its usual folders.
+   soffice.com (not .exe) is the console launcher: it stays open until the conversion has finished. */
+function findSoffice(configured, platform = process.platform) {
+  if (configured !== 'soffice' || platform !== 'win32') return configured;
+  for (const dir of ['C:\\Program Files\\LibreOffice\\program', 'C:\\Program Files (x86)\\LibreOffice\\program']) {
+    const file = path.join(dir, 'soffice.com');
+    if (fs.existsSync(file)) return file;
+  }
+  return configured;
+}
+
 function loadConfig(env = process.env) {
   const parsed = schema.safeParse(env);
   if (!parsed.success) {
@@ -64,12 +79,17 @@ function loadConfig(env = process.env) {
   const isProduction = c.NODE_ENV === 'production';
   const cookieSecure = c.QP_COOKIE_SECURE ?? isProduction;
 
+  const hasPaytmKeys = Boolean(c.PAYTM_MID && c.PAYTM_MERCHANT_KEY);
+  const paymentMode = c.QP_PAYMENT_MODE ?? (c.NODE_ENV === 'development' && !hasPaytmKeys ? 'test' : 'paytm');
+
   const errors = [];
   if (isProduction) {
     if (!c.QP_PUBLIC_ORIGIN.startsWith('https://')) errors.push('QP_PUBLIC_ORIGIN must be https in production.');
     if (!c.QP_ADMIN_ORIGIN.startsWith('https://')) errors.push('QP_ADMIN_ORIGIN must be https in production.');
     if (c.QP_PUBLIC_ORIGIN === c.QP_ADMIN_ORIGIN) errors.push('Admin must be served from a separate origin.');
     if (!cookieSecure) errors.push('Secure cookies are mandatory in production.');
+    // Test payments give free orders to anyone who presses the button, so they can never go live.
+    if (paymentMode === 'test') errors.push('QP_PAYMENT_MODE=test is not allowed in production.');
     if (!c.QP_DATA_KEY) errors.push('QP_DATA_KEY is required in production (32 random bytes, base64).');
     if (!c.PAYTM_MID || !c.PAYTM_MERCHANT_KEY) errors.push('PAYTM_MID and PAYTM_MERCHANT_KEY are required in production.');
     if (!c.PAYTM_HOST.startsWith('https://')) errors.push('PAYTM_HOST must be https in production.');
@@ -94,13 +114,14 @@ function loadConfig(env = process.env) {
     rateLimitPerMinute: c.QP_RATE_LIMIT_PER_MIN,
     maxDocsPerOrder: c.QP_MAX_DOCS_PER_ORDER,
     maxPagesPerDoc: c.QP_MAX_PAGES_PER_DOC,
-    sofficePath: c.QP_SOFFICE_PATH,
+    sofficePath: findSoffice(c.QP_SOFFICE_PATH),
     convertTimeoutMs: c.QP_CONVERT_TIMEOUT_MS,
     officeConcurrency: c.QP_OFFICE_CONCURRENCY,
     fastConcurrency: c.QP_FAST_CONCURRENCY,
     cookieSecure,
     dataKey,
-    paytm: c.PAYTM_MID && c.PAYTM_MERCHANT_KEY ? Object.freeze({
+    testPayments: paymentMode === 'test',
+    paytm: hasPaytmKeys ? Object.freeze({
       mid: c.PAYTM_MID,
       key: c.PAYTM_MERCHANT_KEY,
       website: c.PAYTM_WEBSITE,
@@ -115,4 +136,4 @@ function loadConfig(env = process.env) {
   });
 }
 
-module.exports = { loadConfig };
+module.exports = { loadConfig, findSoffice };

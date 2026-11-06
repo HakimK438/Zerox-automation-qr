@@ -5,65 +5,65 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Shop Dashboard</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="dashboard.css">
 </head>
 <body id="dashboard">
 <nav>
   <div class="brand"><div class="logo"><svg class="i" viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg></div><div><b id="bn">Xerox Center</b><span id="who">Xerox Print System</span></div></div>
-  <button class="nv on" data-page="home"><svg class="i" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>Home</button>
-  <button class="nv owner-only" data-page="reports"><svg class="i" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Reports</button>
+  <button class="nv on" data-page="home"><svg class="i" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>Orders</button>
   <button class="nv owner-only" data-page="settings"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
   <div class="navfoot">
     <span class="live" id="live"><i></i><span>Connecting…</span></span>
+    <div class="zoomer" role="group" aria-label="Text size"><button type="button" id="zoomOut" aria-label="Smaller text">A-</button><button type="button" id="zoomReset" aria-label="Normal text">100%</button><button type="button" id="zoomIn" aria-label="Bigger text">A+</button></div>
+    <button class="langbtn navlang" id="langBtn" type="button"></button>
     <a id="custLink" href="#" target="_blank" rel="noopener"><svg class="i" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>Open customer page</a>
     <button class="navbtn" id="logout" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Log out</button>
   </div>
 </nav>
 
 <main>
+<div class="testbar hide" id="testOn"><b>TEST MODE</b><span>No real money. Nothing prints on paper.</span></div>
 <!-- ============ HOME ============ -->
 <section id="home">
   <div class="head">
-    <h1>Home</h1>
-    <div class="mode-control"><span>Print mode</span><label class="mode-switch"><span>Manual</span><input id="modeToggle" type="checkbox" role="switch" aria-label="Automatic printing"><span class="mode-track" aria-hidden="true"><i></i></span><span>Automatic</span></label></div>
-    <button class="pill off" id="pill" type="button"><i></i><span>No print agent connected</span></button>
+    <h1>Orders<small id="todayLine"></small></h1>
+    <label class="autosw"><input id="modeToggle" type="checkbox" role="switch" aria-label="Auto print"><span class="autotrack" aria-hidden="true"><i></i></span><span class="autotext"><b>Auto print</b><span id="modeText"></span></span></label>
+    <button class="pill off" id="pill" type="button"><i></i><span>Printer not connected</span></button>
     <button class="btn red stopbtn" id="stop"></button>
   </div>
-  <div class="stopped hide" id="stoppedMsg"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>Everything is stopped. Customers see "Printing paused".</div>
-  <div class="demo hide" id="payOff">Online payment is switched off (no Paytm keys on the server). Customers cannot pay yet.</div>
+  <div class="stopped hide" id="stoppedMsg"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>Printing is stopped.</div>
+  <div class="demo hide" id="payOff">Online payment is off. Customers cannot pay yet.</div>
+
+  <section class="demobox hide" id="demoBox">
+    <div class="dprinter" id="dprinter" aria-hidden="true"><div class="dp-top"></div><div class="dp-body"><i></i></div><div class="dp-sheet"><span></span><span></span><span></span></div></div>
+    <div class="dinfo"><small>Demo printer</small><b id="dTitle"></b><span id="dSub"></span><div class="pg lg hide" id="dBarBox"><i id="dBar"></i></div></div>
+    <div class="dact"><label class="autosw"><input id="demoToggle" type="checkbox" role="switch" aria-label="Demo printer"><span class="autotrack" aria-hidden="true"><i></i></span><span class="autotext"><b>Demo printer</b><span id="demoText"></span></span></label>
+      <a class="btn green" id="demoCust" href="#" target="_blank" rel="noopener">Place a test order</a></div>
+  </section>
 
   <div id="now"></div>
   <div class="stats">
-    <button class="stat s-wait" data-f="paid"><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h10M4 10h10M4 15h6"/><circle cx="17" cy="16" r="4"/><path d="M17 14v2l1.5 1"/></svg></div><div><span>Waiting to print</span><b id="nWait">0</b><small id="waitHint">Paid orders in queue</small></div></button>
-    <button class="stat s-print" data-f="printing"><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M7 8V3h10v5"/><rect x="3" y="8" width="18" height="9" rx="2"/><path d="M7 14h10v7H7z"/><circle cx="17.5" cy="11.5" r=".6"/></svg></div><div><span>Printing now</span><b id="nPrint">0</b><small>Current print jobs</small></div></button>
-    <button class="stat s-ready" data-f="ready"><div class="ic"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></div><div><span>Ready for pickup</span><b id="nReady">0</b><small>Waiting for customer</small></div></button>
-    <button class="stat s-att" data-f="attention"><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3zM12 10v5M12 18h.01"/></svg></div><div><span>Needs attention</span><b id="nAtt">0</b><small>Problems and refunds</small></div></button>
+    <button class="stat s-wait" data-f="paid"><span>Waiting</span><b id="nWait">0</b></button>
+    <button class="stat s-print" data-f="printing"><span>Printing</span><b id="nPrint">0</b></button>
+    <button class="stat s-ready" data-f="ready"><span>Ready</span><b id="nReady">0</b></button>
+    <button class="stat s-att" data-f="attention"><span>Problems</span><b id="nAtt">0</b></button>
   </div>
 
   <div class="sec">
     <div class="tt"><h2 id="listTitle">Orders</h2></div>
-    <div class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input class="field" id="find" placeholder="Token e.g. 105" inputmode="numeric" aria-label="Find token"></div>
-    <div class="tabs"><button id="tQueue" class="on">Now</button><button id="tToday">Today</button><button id="tHist"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"/></svg>History</button></div>
+    <div class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input class="field" id="find" placeholder="Token number" inputmode="numeric" aria-label="Find token"></div>
+    <div class="tabs"><button id="tQueue" class="on">Active</button><button id="tToday">Today</button><button id="tHist"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"/></svg>Past</button></div>
     <input class="field hide" id="histDate" type="date" aria-label="History date">
   </div>
-  <div class="cols"><span>Token</span><span>Paid at</span><span>Amount</span><span>Files</span><span>Printing status</span><span>Action</span><span></span></div>
+  <div class="cols"><span>Token</span><span>Files</span><span>Amount</span><span>Status</span><span>Action</span><span></span></div>
   <div id="orders"></div>
-</section>
-
-<!-- ============ REPORTS ============ -->
-<section id="reports" class="hide">
-  <div class="head"><h1>Reports<small>Money and pages for one day (IST)</small></h1><input class="field" id="repDate" type="date" aria-label="Report date"><a class="btn ghost" id="csv" href="#">Download CSV</a></div>
-  <div class="box"><h3>Problems to look at</h3><div id="problems" class="muted">None.</div></div>
-  <div class="cards" id="repCards"></div>
-  <div class="box"><h3>Check: money vs work</h3><div id="recon" class="recon"></div></div>
-  <div class="box"><h3>Payments that need a refund or check</h3><div id="repFlags" class="muted">None.</div></div>
-  <div class="box"><h3>Activity log</h3><div id="audit" class="audit"></div><button class="btn ghost sm" id="auditMore" type="button">Show older</button></div>
 </section>
 
 <!-- ============ SETTINGS ============ -->
 <section id="settings" class="hide">
-  <div class="head"><h1>Settings<small>Changes reach the customer page immediately</small></h1></div>
+  <div class="head"><h1>Settings</h1></div>
   <div class="box wide" id="printersBox"><h3><svg class="i" viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>Printers</h3>
     <div id="agentList"></div>
     <div id="printerList"></div>
@@ -83,7 +83,7 @@
       <div class="ptab"><span></span><span class="h">One side<br><small>per page</small></span><span class="h">Both sides<br><small id="bothUnit">per sheet</small></span>
         <b>Black &amp; White</b><label class="money"><span>₹</span><input class="field" id="p_bw1" type="number" min="0" max="1000" step="0.5" required aria-label="Black and white one side"></label><label class="money"><span>₹</span><input class="field" id="p_bw2" type="number" min="0" max="1000" step="0.5" required aria-label="Black and white both sides"></label>
         <b>Colour</b><label class="money"><span>₹</span><input class="field" id="p_col1" type="number" min="0" max="1000" step="0.5" required aria-label="Colour one side"></label><label class="money"><span>₹</span><input class="field" id="p_col2" type="number" min="0" max="1000" step="0.5" required aria-label="Colour both sides"></label></div>
-      <div class="rowf">Both-sides price is charged<select class="field" id="p_basis" style="width:210px"><option value="sheet">per sheet (front + back)</option><option value="side">per printed side</option></select></div>
+      <div class="rowf">Both-sides price is charged<select class="field" id="p_basis" style="width:260px;max-width:100%"><option value="sheet">per sheet (front + back)</option><option value="side">per printed side</option></select></div>
       <div class="rowf">A3 costs<span><input class="field" id="p_a3" type="number" min="1" max="10" step="0.5" style="width:90px" required> × A4 price</span></div>
       <p class="note">Orders already paid keep the price they were charged. Saving asks for your password.</p>
       <div class="savebox"><button class="btn" type="submit">Save prices</button></div>
@@ -153,6 +153,8 @@
 
 <script src="vendor/qrcode/qrcode.js"></script>
 <script type="module" src="pdf-loader.js"></script>
+<script src="i18n-hi.js"></script>
+<script src="i18n-core.js"></script>
 <script src="api.js"></script>
 <script src="owner.js"></script>
 </body>

@@ -3,7 +3,7 @@
 > **Start every new conversation by reading this file, then [PRODUCTION_PLAN.md](PRODUCTION_PLAN.md).**
 > Update this file at the end of every phase. Keep it in sync with the code.
 
-_Last updated: 2026-11-06 (end of Phase 8)_
+_Last updated: 2026-11-06 (end of Phase 8, plus UI, Hindi, test payments and Word fixes)_
 
 ---
 
@@ -23,7 +23,7 @@ _Last updated: 2026-11-06 (end of Phase 8)_
 | 9 | **Oracle Cloud deployment, load test, security review** | ⏭️ **NEXT** | C8, C9 |
 
 **Tests:**
-- 141 server + 5 print-agent tests passing (`npm test` runs both).
+- 161 server + 5 print-agent tests passing (`npm test` runs both).
 - **19 real-browser customer checks** (`npm run e2e`).
 - **33 real-browser admin checks** (`npm run e2e:admin`: owner and customer side by side). This includes pairing the real agent from the dashboard and automatic printing through fake PowerShell/SumatraPDF.
 - All run in Chromium against the real server plus mock Paytm. `npm audit`: 0 vulnerabilities.
@@ -35,13 +35,15 @@ _Last updated: 2026-11-06 (end of Phase 8)_
   - live orders: start printing → mark ready → hand over with the customer's PIN
   - refund, document viewer, settings, prices, QR poster, reports and activity log
 
-**Try it locally (no Paytm account needed):**
+**Quickest way to try it locally:** `npm run dev`, then in a second terminal `npm run dev:account`. Open http://localhost:3001 and press Log in: the form fills itself (test owner `testowner`, saved in `data/dev-login.json`). The shop is on http://localhost:3000, with test payment buttons instead of UPI.
+
+**Or with a real owner account and a fake Paytm:**
 1. `npm run admin:create`: create the owner. Scan the QR code with Google Authenticator or Microsoft Authenticator.
 2. `npm run dev:fakepay`: starts the shop with a **fake Paytm**.
    - Customer site: http://localhost:3000
    - Admin: http://localhost:3001
    - Fake-Paytm control page, where you click "Approve" for a payment: http://127.0.0.1:3099
-3. `npm run dev` runs without payments. The customer sees "payment not available" until real Paytm keys are set.
+3. `npm run dev` without Paytm keys runs **test payments** (see §2).
 
 ---
 
@@ -169,6 +171,26 @@ _Last updated: 2026-11-06 (end of Phase 8)_
     - No `alert`/`confirm`/`prompt`: in-page dialog. The QR poster prints via a print stylesheet (no `window.open` with inline script).
     - The old `shared.js` demo, the client-side password "1234", "Mark as Paid", the Razorpay settings and the localStorage state are all removed.
   - **Dev fake Paytm:** `npm run dev:fakepay` (`scripts/dev-fake-paytm.js`, refuses `NODE_ENV=production`). It runs `test/paytmMock.js` on :3099 with an Approve/Fail page, and posts a signed webhook to the app on approval. Its UPI deep link uses a fake VPA (`fake.devmock@invalid`), so a real UPI app cannot pay it.
+- **Test payment mode (2026-11-06):** `QP_PAYMENT_MODE=paytm|test`.
+  - Default is `test` only when `NODE_ENV=development` and no Paytm keys are set. **Production refuses `test`** at start-up: the button would give anyone free orders.
+  - `payments/testGateway.js` has the same methods as the Paytm client. `POST /api/orders/:id/test-payment {result}` exists only in this mode, is owner-only, sets the gateway's answer, then calls the normal `verify()` → `applyStatus()`. So token, PIN, queue, dashboard and refund all run the real code, and "only verification can mark paid" still holds. `payments.payment_mode` is `TEST`. Customer and dashboard show a "Test mode" banner.
+  - **Test login:** `npm run dev:account` (`scripts/dev-test-account.js`, refuses production) creates `testowner`, writes `data/dev-login.json`, fills fake shop details and places 3 orders through the API. `GET /api/admin/dev-login` fills the login form from that file. It answers 204 unless test mode is on, not production, and the caller is on this computer. Its code is the next 30-second step's, because a code works only once.
+- **Demo printer (test mode only):** `agent/demoPrinter.js` registers as a normal agent named "Demo printer" and uses the real `nextJob` / `download` / `result`, so an order goes paid → printing → ready through the real queue. Only the paper is pretend. It starts with the server in test mode. `GET/POST /api/admin/demo-printer` exist only in test mode. Switching off mid-job reports `failed`, so the order shows under Problems.
+- **`npm run demo`** (`scripts/demo-show.js`, refuses production) plays upload → pay → print → handover in two windows with captions, on Microsoft Edge or `CHROME`.
+- **Test owner password is `1234`** (`scripts/dev-test-account.js`, local test account only). Re-running the script resets it and logs that account out. The 12-character rule still applies to real accounts and the dashboard's Change password form. **Never use this account on a public link.**
+- **Dashboard zoom:** A- / percent / A+ in the side menu, 60% to 200% in 10% steps, kept in `localStorage` (`qp_zoom`). The order table switches to cards with a rem-based container query, so it follows the zoom.
+- **"Place a test order"** links to `/#new`, which opens the upload page even if this browser has an active order.
+- **Dashboard simplified (2026-11-06):** base text 14 pt (`apps/admin/style.css`); cards are a word and a number; order rows are token + time, files, amount, status, action. Reports page removed from the UI, including the activity log and CSV button. Their API routes and tests remain. The extra-payment refund moved into the order details. The owner sees "Today: ₹ from N orders" under the title.
+- **English / Hindi (2026-11-06):** `i18n-core.js` (identical in `apps/web` and `apps/admin`; a test checks this) + `i18n-hi.js` per site. **The English text is the key**; missing Hindi shows English.
+  - Static pages are translated by walking the DOM. Code uses `t('...', vars)`. Fixed text in tables uses the no-op marker `N('...')`, so tests can find it. Server messages stay in English and go through `QPI18n.server()` (exact match, then `QP_HI_PATTERNS`); `ApiError` does this for all API errors.
+  - The choice is kept in `localStorage` (`qp_lang`), a per-viewer convenience. Default follows the browser language.
+  - **New text must be added to `i18n-hi.js`:** `improvements.test.js` fails otherwise. Don't name a local variable `t` in `customer.js` or `owner.js`.
+- **Text size (2026-11-06):** root font is 17px (`html{font-size:106.25%}`) and no text is smaller than `.9rem`.
+- **Word/PowerPoint (2026-11-06):** still LibreOffice: free, keeps layout best, and the customer previews the result before paying. No paid API.
+  - Works on Windows too: `findSoffice` looks in Program Files for `soffice.com` at each job (no restart after installing), `taskkill /T` for timeouts, and the system variables LibreOffice needs. The server logs `office_converter_missing` at start-up if it can't be found.
+  - One reused profile per conversion slot in `<data>/tmp/lo-profile-N` skips the first-run set-up on every file. It holds settings only. Deleted on timeout.
+  - Timeout raised to 120 s. Concurrency stays 1 (fits 2 OCPU; raise `QP_OFFICE_CONCURRENCY` to 2 only if files queue up).
+  - `.doc`/`.docx` and `.ppt`/`.pptx` that were renamed are accepted by their real content. `application/zip` and older Office MIME names are allowed as declared types, because phones send them.
 - **Queue/ETA (phase 5):**
   - Queue = paid/printing/print_attention orders by `paid_at`.
   - Work = setup + sides/ppm, with colour using `ppmColor` and duplex ×1.1.
@@ -376,7 +398,7 @@ Foreign or unknown ids always return **404** (no probing).
 
 ## 5. Known gaps / caveats
 
-- **LibreOffice is not installed on the dev machine.** The DOCX success path is untested; only the "not available" failure is tested. The test auto-switches when `soffice` exists. Install: `sudo apt install libreoffice-writer-nogui libreoffice-impress-nogui`.
+- **LibreOffice:** real DOCX conversion checked on the Windows dev machine on 2026-11-06 (LibreOffice 26.8.2): direct converter run and an upload through the running server, including Hindi text. PPT/PPTX and real customer files are not tested yet. Measured on Windows: 730 MB installed, 218 MB peak memory per conversion, 6.7 to 14 s per small file (25 s for the very first). Re-measure on the Linux VM. Server install: `sudo apt install libreoffice-writer-nogui libreoffice-impress-nogui fonts-noto-core fonts-liberation2 fonts-crosextra-carlito fonts-crosextra-caladea`. The fonts matter: without Noto, Hindi Word files will not print correctly on Linux; Carlito/Caladea/Liberation match Calibri/Cambria/Times/Arial widths, so page counts stay close to Word's.
 - **The HEIC conversion path is untested** (no sample file can be generated here). It needs one real iPhone `.heic` file.
 - **Load test:** 100 parallel 5 MB uploads gave 100/100 success, 291 MB peak RSS, conversions done ~4 s after uploads. Upload p95 was ~19 s on this 2-CPU sandbox, where the clients shared the same CPUs. It must be re-measured on the OCI VM with remote clients (phase 9, target p95 < 3 s). Server CPU is ~100 ms per 5 MB upload.
 - **The LibreOffice sandbox** (separate user, `systemd-run` with MemoryMax and no network) is deferred to phase 9 deployment. For now soffice runs with a stripped env, a temp profile and a hard timeout that kills the process group.
@@ -405,7 +427,6 @@ Foreign or unknown ids always return **404** (no probing).
 - **Paytm JS Checkout ("Other ways to pay")** is wired, but its exact config shape and the styles/frames it injects can only be verified with real staging credentials. The CSP already allows the Paytm host.
 - **The UI is checked on emulated devices** (Playwright Pixel 7 / iPhone 13 / desktop), not real phones. Real-device testing of UPI intents is still required (plan Part E).
 - The customer page uses system fonts (Google Fonts removed for CSP/privacy). Self-host Inter later if desired.
-- **The repo is not a git repo yet.** Recommend `git init`.
 - Phase 0 cleanup backup (old test DBs and uploads) is at `/tmp/claude-1000/-home-alikhan-quick-print--1-/e2994e7e-226d-42e5-9a05-c24cf7aef462/scratchpad/phase0-junk-backup.tgz`. This is a temp location and may be gone.
 
 ### Waiting on the user (external)

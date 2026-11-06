@@ -11,7 +11,7 @@ const estimateQuery = z.object({
   duplex: z.enum(['0', '1']).default('0')
 }).strict();
 
-function shopRoutes({ settings, printQueue, hub, session }) {
+function shopRoutes({ config, settings, printQueue, hub, session }) {
   const router = express.Router();
   const limiters = [];
   const limit = (opts) => { const l = rateLimit(opts); limiters.push(l); return l; };
@@ -19,7 +19,7 @@ function shopRoutes({ settings, printQueue, hub, session }) {
   // Name, address, hours and phone for the customer page and the token ticket.
   router.get('/shop', (req, res) => {
     const s = settings.shop();
-    res.json({ name: s.name, address: s.address, phone: s.phone, open: s.open, close: s.close });
+    res.json({ name: s.name, address: s.address, phone: s.phone, open: s.open, close: s.close, ...(config.testPayments ? { testPayments: true } : {}) });
   });
 
   // "Ready in about N minutes" before ordering, for bw/color printed sides.

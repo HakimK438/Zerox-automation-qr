@@ -20,7 +20,7 @@ function createConversionQueue({ db, storage, config, logger, onUpdate = () => {
     concurrency,
     waiting: [],
     running: 0,
-    slots: Array.from({ length: concurrency }, () => ({ worker: null, jobs: 0, busy: false, pending: null }))
+    slots: Array.from({ length: concurrency }, (_, index) => ({ index, worker: null, jobs: 0, busy: false, pending: null }))
   });
   const lanes = { fast: makeLane(config.fastConcurrency), office: makeLane(config.officeConcurrency) };
   const idleWaiters = [];
@@ -93,7 +93,8 @@ function createConversionQueue({ db, storage, config, logger, onUpdate = () => {
       dst,
       maxPages: config.maxPagesPerDoc,
       sofficePath: config.sofficePath,
-      timeoutMs: config.convertTimeoutMs
+      timeoutMs: config.convertTimeoutMs,
+      profileDir: path.join(config.dataDir, 'tmp', `lo-profile-${slot.index}`)
     });
 
     const at = new Date().toISOString();

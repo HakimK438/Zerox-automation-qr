@@ -22,6 +22,7 @@ const { createSettingsService } = require('./modules/settings/service');
 const { createPricingService } = require('./modules/pricing/service');
 const { createSecretBox } = require('./lib/secretBox');
 const { createPaytmClient } = require('./modules/payments/paytm/client');
+const { createTestGateway } = require('./modules/payments/testGateway');
 const { createPaymentService } = require('./modules/payments/service');
 const { paymentRoutes } = require('./modules/payments/routes');
 const { createQueueService } = require('./modules/queue/service');
@@ -37,6 +38,7 @@ const { createAgentService } = require('./modules/agent/service');
 const { createDispatcher } = require('./modules/agent/dispatcher');
 const { agentRoutes } = require('./modules/agent/routes');
 const { createRetentionJob } = require('./jobs/retention');
+const { createDemoPrinter } = require('./modules/agent/demoPrinter');
 
 /**
  * @param {{ config: ReturnType<import('./config/env').loadConfig>, db: import('better-sqlite3').Database, logger: any }} deps
@@ -126,7 +128,7 @@ function createApp({ config, db, logger, now = () => Date.now() }) {
   const pricing = createPricingService({ db, settings, now });
   const printQueue = createQueueService({ db, settings, now, printers: () => agents.usablePrinters() });
   const secretBox = createSecretBox(config.dataKey);
-  const paytm = config.paytm ? createPaytmClient({
+  const paytm = config.testPayments ? createTestGateway() : config.paytm ? createPaytmClient({
     ...config.paytm,
     callbackUrl: `${config.publicOrigin}/api/payments/paytm/callback`
   }) : null;
@@ -137,10 +139,11 @@ function createApp({ config, db, logger, now = () => Date.now() }) {
   const dispatcher = createDispatcher({ db, agents, settings, storage, notify, logger, now });
   bus.on('order', (orderId) => dispatcher.onOrder(orderId));
   bus.on('queue', () => dispatcher.sweepAutomatic()); // unpaused, switched to automatic, printer enabled
+  const demoPrinter = config.testPayments ? createDemoPrinter({ db, agents, dispatcher, bus, logger }) : null;
   const ordersRouter = orderRoutes({ db, config, storage, queue, session, pricing, settings, pins: payments.pinFor, printQueue, bus });
   const paymentsRouter = paymentRoutes({ db, config, payments, session });
   const hub = createRealtimeHub({ db, bus, queue: printQueue, views: ordersRouter.views, logger });
-  const shopRouter = shopRoutes({ settings, printQueue, hub, session });
+  const shopRouter = shopRoutes({ config, settings, printQueue, hub, session });
   const agentRouter = agentRoutes({ agents, dispatcher, logger });
   const retention = createRetentionJob({ db, storage, settings, logger, notify, now });
   app.use('/api', ordersRouter, paymentsRouter, shopRouter, agentRouter);
@@ -150,7 +153,7 @@ function createApp({ config, db, logger, now = () => Date.now() }) {
   const adminSession = createAdminSession({ auth: adminAuth, config });
   const adminService = createAdminService({ db, printQueue, dispatcher, notify, now });
   const adminStream = createAdminStream({ db, bus, service: adminService, auth: adminAuth, logger });
-  const adminRouter = adminRoutes({ config, auth: adminAuth, adminSession, service: adminService, settings, pricing, payments, storage, stream: adminStream, bus, agents, agentRouter });
+  const adminRouter = adminRoutes({ config, auth: adminAuth, adminSession, service: adminService, settings, pricing, payments, storage, stream: adminStream, bus, agents, agentRouter, demoPrinter });
   app.use('/api/admin', adminSession.load, adminRouter);
 
 
@@ -209,12 +212,14 @@ function createApp({ config, db, logger, now = () => Date.now() }) {
   app.locals.agents = agents;
   app.locals.dispatcher = dispatcher;
   app.locals.retention = retention;
+  app.locals.demoPrinter = demoPrinter;
   app.locals.agentRouter = agentRouter;
   /** Ends every long-lived stream (customer, admin, agent) so server.close() can finish. */
   app.locals.closeStreams = () => { hub.close(); adminStream.close(); agentRouter.close(); };
   app.locals.shutdown = () => {
     globalLimit.stop(); customerRouter.stop(); ordersRouter.stop(); paymentsRouter.stop(); shopRouter.stop(); adminRouter.stop(); agentRouter.stop();
     hub.close(); adminStream.close(); agentRouter.close(); dispatcher.stop(); retention.stop();
+    if (demoPrinter) demoPrinter.stop();
     return queue.close();
   };
   return app;

@@ -9,6 +9,8 @@
     "test": "node --test \"test/**/*.test.js\"",
     "e2e": "node e2e/customer.e2e.js",
     "dev:fakepay": "node scripts/dev-fake-paytm.js",
+    "dev:account": "node scripts/dev-test-account.js",
+    "demo": "node scripts/demo-show.js",
     "admin:create": "node scripts/admin-create.js",
     "e2e:admin": "node e2e/admin.e2e.js"
   },

@@ -24,8 +24,13 @@ The full design, defect analysis and phased roadmap are in [PRODUCTION_PLAN.md](
 ```bash
 npm install
 npm test          # server test suite
-npm run dev       # API on http://127.0.0.1:3000 (data in ./data)
+npm run dev       # shop on http://localhost:3000, owner dashboard on http://localhost:3001 (data in ./data)
+npm run dev:account   # test owner + sample shop details + 3 test orders (never in production)
+npm run demo          # plays one full order on screen: upload, pay, print, handover (never in production)
 ```
+
+Without Paytm keys, `npm run dev` uses **test payments**: a "Payment successful" and a "Payment failed" button
+replace UPI, no money moves, and production refuses this mode. Word and PowerPoint uploads need LibreOffice.
 
 Configuration is validated at startup; see `.env.example`. Production refuses plain-HTTP origins,
 insecure cookies, a shared customer/admin origin, and `QP_TRUST_PROXY=true`.

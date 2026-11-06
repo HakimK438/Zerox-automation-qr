@@ -4,7 +4,9 @@
    Paytm: browser callback (form POST back from Paytm) and server-to-server webhook. Both are only
    hints: the checksum is verified and then the Transaction Status API decides. */
 const express = require('express');
+const { z } = require('zod');
 const { rateLimit } = require('../../middleware/rateLimit');
+const { validate } = require('../../middleware/validate');
 const { createOwnedOrder } = require('../orders/ownership');
 const { verifySignature } = require('./paytm/checksum');
 
@@ -29,6 +31,14 @@ function paymentRoutes({ db, config, payments, session }) {
       const order = await payments.reopen(req.order);
       res.json({ orderId: order.id, status: order.status });
     });
+
+  // Test payment mode only. In live mode this route does not exist.
+  if (config.testPayments) {
+    const testBody = z.object({ result: z.enum(['success', 'fail']) }).strict();
+    router.post('/orders/:orderId/test-payment', session.required,
+      limit({ name: 'pay_test', max: 30, keyFn: bySession }), validate(testBody), ownedOrder,
+      async (req, res) => res.json(await payments.settleTest(req.order, req.valid.body.result)));
+  }
 
   /* ---------- Paytm → us ---------- */
   const form = express.urlencoded({ extended: false, limit: '20kb', parameterLimit: 60 });

@@ -1,9 +1,10 @@
 'use strict';
 const test = require('node:test');
+const { findSoffice } = require('../src/config/env');
+const { officeConverterAvailable } = require('../src/modules/documents/converters');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { execFileSync } = require('node:child_process');
 const { PDFDocument } = require('pdf-lib');
 const sharp = require('sharp');
 const yazl = require('yazl');
@@ -11,7 +12,8 @@ const { startTestApp } = require('./helpers');
 const { sessionCookie, api } = require('./fixtures');
 const { cleanFileName } = require('../src/modules/documents/receive');
 
-const HAS_SOFFICE = (() => { try { execFileSync('which', ['soffice'], { stdio: 'ignore' }); return true; } catch { return false; } })();
+const SOFFICE = findSoffice('soffice');
+const HAS_SOFFICE = officeConverterAvailable(SOFFICE);
 
 /* ---------- file builders ---------- */
 async function makePdf(pages = 1, { encrypted = false } = {}) {
@@ -153,7 +155,7 @@ test('rejects macro documents disguised as .docx', async (t) => {
 });
 
 test('Word conversion: real PDF with LibreOffice, polite failure without it', async (t) => {
-  const ctx = await startTestApp({ QP_SOFFICE_PATH: HAS_SOFFICE ? 'soffice' : '/nonexistent/soffice' });
+  const ctx = await startTestApp({ QP_SOFFICE_PATH: HAS_SOFFICE ? SOFFICE : '/nonexistent/soffice' });
   t.after(ctx.close);
   const c = await customer(ctx.base);
   const doc = await uploadAndConvert(t, ctx, c, { name: 'letter.docx', type: DOCX, bytes: await makeZip(DOCX_ENTRIES) });

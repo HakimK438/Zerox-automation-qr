@@ -6,6 +6,7 @@ const { createApp } = require('./app');
 const { createLogger } = require('./lib/logger');
 const { createSessionExpiryJob } = require('./jobs/sessionExpiry');
 const { createPaymentReconciler } = require('./jobs/paymentReconciler');
+const { officeConverterAvailable } = require('./modules/documents/converters');
 
 function main() {
   const logger = createLogger({ level: process.env.QP_LOG_LEVEL || 'info' });
@@ -27,7 +28,12 @@ function main() {
   reconciler.start();
   app.locals.dispatcher.start(); // print lease watchdog
   app.locals.retention.start();  // delete customer files when no longer needed
-  if (!config.paytm) logger.warn('payments_disabled', { reason: 'PAYTM_MID / PAYTM_MERCHANT_KEY not set' });
+  if (app.locals.demoPrinter) app.locals.demoPrinter.on(); // test mode: pretend printer, nothing goes on paper
+  if (config.testPayments) logger.warn('test_payments_on', { note: 'No real money. Orders are paid with the test buttons.' });
+  else if (!config.paytm) logger.warn('payments_disabled', { reason: 'PAYTM_MID / PAYTM_MERCHANT_KEY not set' });
+  if (!officeConverterAvailable(config.sofficePath)) {
+    logger.warn('office_converter_missing', { note: 'LibreOffice not found: Word and PowerPoint uploads will fail. Install it or set QP_SOFFICE_PATH.' });
+  }
   // Crash recovery: drop half-written uploads, resume interrupted conversions.
   app.locals.storage.cleanTmp()
     .then(() => app.locals.queue.recover())

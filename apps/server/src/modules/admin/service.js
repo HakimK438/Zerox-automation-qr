@@ -151,7 +151,7 @@ function createAdminService({ db, printQueue, dispatcher = null, notify = () => 
         mode: p.payment_mode, paidAt: p.paid_at, needsRefund: !!p.needs_refund, resultMsg: p.result_msg
       })),
       refunds: q.refunds.all(o.id).map((r) => ({
-        refundId: r.id, status: r.status, amountPaise: r.amount_paise, reason: r.reason, createdAt: r.created_at, providerRef: r.provider_ref
+        refundId: r.id, paymentId: r.payment_id, status: r.status, amountPaise: r.amount_paise, reason: r.reason, createdAt: r.created_at, providerRef: r.provider_ref
       })),
       printJobs: dispatcher ? dispatcher.jobsFor(o.id) : [],
       events: q.events.all(o.id).map((e) => ({ from: e.from_status, to: e.to_status, actor: e.actor, reason: e.reason, at: e.created_at }))

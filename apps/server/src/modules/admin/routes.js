@@ -2,6 +2,7 @@
 /* /api/admin/* (plan C7). Mounted only on the admin host (app.js). Every route except login needs an
    admin session; every write also needs the CSRF header; money and price changes need the password again. */
 const fs = require('node:fs');
+const path = require('node:path');
 const express = require('express');
 const { z } = require('zod');
 const { validate } = require('../../middleware/validate');
@@ -9,6 +10,7 @@ const { rateLimit } = require('../../middleware/rateLimit');
 const { HttpError, notFound, forbidden } = require('../../lib/errors');
 const { UUID_RE } = require('../orders/ownership');
 const { PAPER_SIZES } = require('../../../../../shared/constants');
+const { totp, STEP_SEC } = require('../../lib/totp');
 
 const loginBody = z.object({
   username: z.string().trim().min(1).max(64),
@@ -73,7 +75,7 @@ const ordersQuery = z.object({
   token: z.string().trim().max(12).optional()
 });
 
-function adminRoutes({ config, auth, adminSession, service, settings, pricing, payments, storage, stream, bus, agents, agentRouter }) {
+function adminRoutes({ config, auth, adminSession, service, settings, pricing, payments, storage, stream, bus, agents, agentRouter, demoPrinter = null }) {
   const router = express.Router();
   const limiters = [];
   const limit = (opts) => { const l = rateLimit(opts); limiters.push(l); return l; };
@@ -88,6 +90,17 @@ function adminRoutes({ config, auth, adminSession, service, settings, pricing, p
   };
 
   /* ---------- auth ---------- */
+
+  /* Development only: fills the login form from data/dev-login.json (npm run dev:account).
+     Answers nothing in production, in live payment mode, or to any other computer. The code is the
+     next step's, because the script may already have used the current one (codes work only once). */
+  router.get('/dev-login', (req, res) => {
+    const local = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
+    if (config.isProduction || !config.testPayments || !local) return res.status(204).end();
+    let login;
+    try { login = JSON.parse(fs.readFileSync(path.join(config.dataDir, 'dev-login.json'), 'utf8')); } catch { return res.status(204).end(); }
+    return res.json({ username: login.username, password: login.password, otp: totp(login.totpSecret, Date.now() + STEP_SEC * 1000) });
+  });
 
   // 10 attempts / 15 min per IP, on top of the 5-failure account lock.
   router.post('/login', limit({ name: 'admin_login', windowMs: 15 * 60000, max: 10 }), validate(loginBody), (req, res) => {
@@ -104,7 +117,8 @@ function adminRoutes({ config, auth, adminSession, service, settings, pricing, p
       csrfToken: req.admin.csrf,
       expiresAt: req.admin.expiresAt,
       publicOrigin: config.publicOrigin,
-      paymentsEnabled: !!config.paytm
+      paymentsEnabled: !!config.paytm || config.testPayments,
+      testPayments: config.testPayments
     });
   });
 
@@ -252,6 +266,14 @@ function adminRoutes({ config, auth, adminSession, service, settings, pricing, p
   /* ---------- print agent & printers ---------- */
 
   router.get('/printers', required, (req, res) => res.json(agents.overview()));
+
+  // Test mode only: the pretend printer shown on the dashboard. These routes do not exist in live mode.
+  if (demoPrinter) {
+    router.get('/demo-printer', required, (req, res) => res.json(demoPrinter.state()));
+    router.post('/demo-printer', required, owner, validate(z.object({ on: z.boolean() }).strict()), (req, res) => {
+      res.json(req.valid.body.on ? demoPrinter.on() : demoPrinter.off());
+    });
+  }
 
   router.post('/agents/pairing', required, owner, limit({ name: 'admin_pairing', max: 10 }), (req, res) => {
     res.status(201).json(agents.createPairing(req.admin.userId, ip(req)));

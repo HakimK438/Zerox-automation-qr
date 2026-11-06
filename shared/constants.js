@@ -64,7 +64,13 @@ const STATUS_LABEL = Object.freeze({
   [S.REFUNDED]: 'Refunded'
 });
 
-/* Accepted uploads: extension -> allowed declared MIME types. Content is also magic-byte sniffed (plan C2). */
+/* Accepted uploads: extension -> allowed declared MIME types. Content is also magic-byte sniffed (plan C2).
+   Phones and some PCs label Office files as plain zip or with older names, so those are listed too. */
+const WORD_OLD = ['application/msword', 'application/vnd.ms-word', 'application/doc', 'application/vnd.ms-office', 'application/x-msword'];
+const WORD_NEW = ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip', 'application/x-zip-compressed'];
+const PPT_OLD = ['application/vnd.ms-powerpoint', 'application/mspowerpoint', 'application/vnd.ms-office'];
+const PPT_NEW = ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip', 'application/x-zip-compressed'];
+
 const UPLOAD_TYPES = Object.freeze({
   '.pdf': ['application/pdf'],
   '.jpg': ['image/jpeg'],
@@ -72,10 +78,10 @@ const UPLOAD_TYPES = Object.freeze({
   '.png': ['image/png'],
   '.heic': ['image/heic', 'image/heif'],
   '.heif': ['image/heif', 'image/heic'],
-  '.doc': ['application/msword'],
-  '.docx': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-  '.ppt': ['application/vnd.ms-powerpoint'],
-  '.pptx': ['application/vnd.openxmlformats-officedocument.presentationml.presentation']
+  '.doc': [...WORD_OLD, ...WORD_NEW],
+  '.docx': [...WORD_NEW, ...WORD_OLD],
+  '.ppt': [...PPT_OLD, ...PPT_NEW],
+  '.pptx': [...PPT_NEW, ...PPT_OLD]
 });
 
 const PAPER_SIZES = Object.freeze(['A4', 'A3']);

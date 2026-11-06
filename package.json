@@ -12,6 +12,8 @@
     "test": "npm --workspace apps/server test && npm --workspace apps/print-agent test",
     "e2e": "npm --workspace apps/server run e2e",
     "dev:fakepay": "npm --workspace apps/server run dev:fakepay",
+    "dev:account": "npm --workspace apps/server run dev:account",
+    "demo": "npm --workspace apps/server run demo",
     "admin:create": "npm --workspace apps/server run admin:create --",
     "e2e:admin": "npm --workspace apps/server run e2e:admin",
     "test:server": "npm --workspace apps/server test",

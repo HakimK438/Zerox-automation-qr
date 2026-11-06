@@ -6,15 +6,18 @@
 <meta name="theme-color" content="#0f4fb0">
 <meta name="referrer" content="same-origin">
 <title>Print your documents</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="page.css">
 </head>
 <body>
+<div class="testbar hide" id="testBar">Test mode: payments are not real and no money is taken.</div>
 <header class="nav"><div class="wrap">
   <a class="brand" href="#" id="home"><i><svg class="i" viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg></i><span id="navShop">Print shop</span></a>
   <nav class="links">
     <button class="btn hide" id="myOrder">My order</button>
     <button class="btn ghost findbtn" id="findBtn" type="button">Find my order</button>
+    <button class="langbtn" id="langBtn" type="button"></button>
   </nav>
 </div></header>
 
@@ -22,12 +25,12 @@
   <!-- ===== PRINT PAGE ===== -->
   <div id="pPrint">
     <section id="print">
-      <h1 class="pt">Get Your Documents Printed</h1>
-      <p class="secsub">Upload your documents, choose how to print them, and pay securely with UPI.</p>
+      <h1 class="pt">Print your documents</h1>
+      <p class="secsub">Upload your files, choose how to print them, and pay with UPI.</p>
       <div class="layout" id="layout">
         <div id="left">
-          <div class="stp" id="stp1"><span class="no" id="stp1no">1</span><span id="stp1t">Upload Documents</span><button class="addbtn hide" id="addTop" type="button">+ Add file</button></div>
-          <div class="drop" id="drop" role="button" tabindex="0"><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H10l2 2h7.5A1.5 1.5 0 0 1 21 9.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M12 16V10m-3 3 3-3 3 3"/></svg></div><b>Tap to choose your documents</b><p>PDF, Word, PowerPoint, JPG or PNG</p><p id="dropLimit">Maximum 25 MB per file · Multiple files supported</p><div class="upload-types" aria-hidden="true"><span class="upload-type"><b>PDF</b></span><span class="upload-type"><b>DOC / DOCX</b></span><span class="upload-type"><b>PPT / PPTX</b></span><span class="upload-type"><b>JPG / PNG</b></span></div><span class="btn">Browse Files</span></div>
+          <div class="stp" id="stp1"><span class="no" id="stp1no">1</span><span id="stp1t">Upload your files</span><button class="addbtn hide" id="addTop" type="button">+ Add file</button></div>
+          <div class="drop" id="drop" role="button" tabindex="0"><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H10l2 2h7.5A1.5 1.5 0 0 1 21 9.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M12 16V10m-3 3 3-3 3 3"/></svg></div><b>Tap here to choose your files</b><p>PDF, Word, PowerPoint, JPG or PNG</p><p id="dropLimit"></p><div class="upload-types" aria-hidden="true"><span class="upload-type"><b>PDF</b></span><span class="upload-type"><b>DOC / DOCX</b></span><span class="upload-type"><b>PPT / PPTX</b></span><span class="upload-type"><b>JPG / PNG</b></span></div><span class="btn">Choose files</span></div>
           <div id="area" class="hide">
             <div id="files"></div>
           </div>
@@ -75,7 +78,7 @@
       <div class="cut"></div>
       <div class="tkbody">
         <div class="h">How to collect</div>
-        <ol class="steps"><li><span>1</span>Wait here. This page updates by itself when your prints are ready.</li><li><span>2</span>Go to the shop.</li><li><span>3</span>Tell the shopkeeper your token <b id="tk2"></b> and PIN.</li></ol>
+        <ol class="steps"><li><span>1</span>Stay on this page. It updates by itself when your prints are ready.</li><li><span>2</span>Go to the shop.</li><li><span>3</span>Tell the shopkeeper your token <b id="tk2"></b> and PIN.</li></ol>
         <div class="where"><svg class="i" viewBox="0 0 24 24"><path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg><div><div id="where"></div><div id="whereAddr"></div><div id="whereHours"></div><a id="whereCall" href="#"></a></div></div>
       </div>
     </div>
@@ -121,6 +124,8 @@
 <input type="file" id="fileIn" multiple class="hide">
 <script src="vendor/qrcode/qrcode.js"></script>
 <script type="module" src="pdf-loader.js"></script>
+<script src="i18n-hi.js"></script>
+<script src="i18n-core.js"></script>
 <script src="api.js"></script>
 <script src="customer.js"></script>
 </body>

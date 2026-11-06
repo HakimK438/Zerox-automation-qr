@@ -4,10 +4,12 @@
 const fsp = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
-const { spawn } = require('node:child_process');
+const fs = require('node:fs');
+const { spawn, execFile } = require('node:child_process');
 const { createHash } = require('node:crypto');
 const { pathToFileURL } = require('node:url');
 const { PDFDocument } = require('pdf-lib');
+const { findSoffice } = require('../../config/env');
 
 /** An error whose message is safe and helpful to show the customer. */
 class ConversionError extends Error {
@@ -82,12 +84,20 @@ async function convertImage(src, dst, { ext }) {
   return { pageCount: 1 };
 }
 
-/** Runs a command with a hard timeout, killing its whole process group (soffice forks soffice.bin). */
+const IS_WINDOWS = process.platform === 'win32';
+
+/** Stops soffice and the soffice.bin it started. Linux: the process group. Windows: the process tree. */
+function killTree(pid) {
+  if (IS_WINDOWS) execFile('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true }, () => { /* already gone */ });
+  else try { process.kill(-pid, 'SIGKILL'); } catch { /* already gone */ }
+}
+
+/** Runs a command with a hard timeout, killing everything it started. */
 function run(cmd, args, { timeoutMs, cwd, env }) {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { cwd, env, stdio: 'ignore', detached: true });
+    const child = spawn(cmd, args, { cwd, env, stdio: 'ignore', detached: !IS_WINDOWS, windowsHide: true });
     const timer = setTimeout(() => {
-      try { process.kill(-child.pid, 'SIGKILL'); } catch { /* already gone */ }
+      killTree(child.pid);
       reject(new ConversionError('This document took too long to convert. Please save it as PDF and upload again.', 'timeout'));
     }, timeoutMs);
     child.on('error', (err) => { clearTimeout(timer); reject(err); });
@@ -95,21 +105,47 @@ function run(cmd, args, { timeoutMs, cwd, env }) {
   });
 }
 
-async function convertOffice(src, dst, { ext, maxPages, sofficePath, timeoutMs }) {
+/* The converter gets only what it needs to run: no inherited secrets. Windows programs also need a
+   few system variables, or LibreOffice cannot start. */
+function officeEnv(work) {
+  const env = { PATH: process.env.PATH, HOME: work, LANG: 'en_US.UTF-8' };
+  if (IS_WINDOWS) {
+    for (const k of ['SystemRoot', 'SystemDrive', 'windir', 'ComSpec', 'PATHEXT', 'ProgramData', 'ProgramFiles', 'ProgramFiles(x86)', 'ALLUSERSPROFILE', 'USERNAME']) {
+      if (process.env[k] !== undefined) env[k] = process.env[k];
+    }
+    Object.assign(env, { TEMP: work, TMP: work, USERPROFILE: work, APPDATA: work, LOCALAPPDATA: work });
+  }
+  return env;
+}
+
+/** True when the configured LibreOffice can be found (checked at start-up to warn the shop owner). */
+function officeConverterAvailable(sofficePath, env = process.env) {
+  if (path.isAbsolute(sofficePath)) return fs.existsSync(sofficePath);
+  const names = IS_WINDOWS ? [`${sofficePath}.com`, `${sofficePath}.exe`] : [sofficePath];
+  return String(env.PATH || '').split(path.delimiter).some((dir) => names.some((n) => dir && fs.existsSync(path.join(dir, n))));
+}
+
+async function convertOffice(src, dst, { ext, maxPages, sofficePath, timeoutMs, profileDir }) {
   const work = await fsp.mkdtemp(path.join(os.tmpdir(), 'qp-lo-'));
+  // Keeping one profile per slot skips LibreOffice's slow first-run set-up on every job.
+  // It holds settings only: each customer file stays in the per-job folder, which is deleted below.
+  const profile = profileDir || path.join(work, 'profile');
   try {
     const input = path.join(work, `input${ext}`);
     await fsp.copyFile(src, input);
     const args = [
       '--headless', '--norestore', '--nologo', '--nodefault', '--nolockcheck', '--nofirststartwizard',
-      `-env:UserInstallation=${pathToFileURL(path.join(work, 'profile')).href}`,
+      `-env:UserInstallation=${pathToFileURL(profile).href}`,
       '--convert-to', 'pdf', '--outdir', work, input
     ];
     try {
-      // Minimal environment: no inherited secrets reach the converter.
-      await run(sofficePath, args, { timeoutMs, cwd: work, env: { PATH: process.env.PATH, HOME: work, LANG: 'en_US.UTF-8' } });
+      // Looked up for each job, so installing LibreOffice works without restarting the server.
+      await run(findSoffice(sofficePath), args, { timeoutMs, cwd: work, env: officeEnv(work) });
     } catch (err) {
-      if (err instanceof ConversionError) throw err;
+      if (err instanceof ConversionError) {
+        if (profileDir) await fsp.rm(profileDir, { recursive: true, force: true }).catch(() => {}); // may be half written
+        throw err;
+      }
       if (err && err.code === 'ENOENT') {
         throw new ConversionError('Word and PowerPoint files cannot be converted right now. Please upload a PDF instead.', 'soffice not installed');
       }
@@ -143,4 +179,4 @@ async function convert(job) {
   return { pageCount, pdfSha256: await sha256File(job.dst) };
 }
 
-module.exports = { convert, ConversionError };
+module.exports = { convert, ConversionError, officeConverterAvailable };

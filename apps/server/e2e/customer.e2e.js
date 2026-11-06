@@ -36,7 +36,7 @@ const check = (cond, msg) => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${msg}`);
   const pdfPath = path.join(dataDir, 'notes.pdf');
   fs.writeFileSync(pdfPath, await makePdf(3));
 
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
   const watchErrors = (page, label) => {
     page.on('pageerror', (e) => problems.push(`${label} page error: ${e.message}`));
     page.on('console', (m) => { if (m.type() === 'error') problems.push(`${label} console: ${m.text()}`); });

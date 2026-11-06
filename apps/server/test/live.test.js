@@ -259,7 +259,9 @@ test('vendored libraries match their pinned checksums', () => {
   const sums = fs.readFileSync(path.join(WEB, 'vendor/SHA256SUMS'), 'utf8').trim().split('\n');
   for (const line of sums) {
     const [hash, file] = line.split(/\s+/);
-    const actual = crypto.createHash('sha256').update(fs.readFileSync(path.join(WEB, 'vendor', file))).digest('hex');
+    // Git on Windows may check text files out with CRLF; the pinned hashes are of the LF originals.
+    const bytes = fs.readFileSync(path.join(WEB, 'vendor', file), 'latin1').replace(/\r\n/g, '\n');
+    const actual = crypto.createHash('sha256').update(Buffer.from(bytes, 'latin1')).digest('hex');
     assert.equal(actual, hash, file);
   }
 });

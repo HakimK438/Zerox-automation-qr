@@ -25,6 +25,8 @@ const KINDS = {
 const EXT_FOR_MIME = Object.fromEntries(Object.entries(KINDS).map(([ext, k]) => [k.mime, ext]));
 EXT_FOR_MIME['image/jpeg'] = '.jpg';
 
+const SWAPPED = { '.doc': '.docx', '.docx': '.doc', '.ppt': '.pptx', '.pptx': '.ppt' };
+
 const HEIF_BRANDS = new Set(['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1']);
 const UNSUPPORTED = 'This file type is not supported. Please upload a PDF, Word, PowerPoint, JPG, PNG or HEIC file.';
 const MISMATCH = "This file's content doesn't match its type. Please re-save it and try again.";
@@ -80,17 +82,22 @@ async function sniffUpload(filePath, originalName, declaredMime) {
   } finally {
     await fh.close();
   }
-  if (magicOf(head) !== spec.magic) throw badRequest(MISMATCH);
+  /* Old .doc and new .docx files often carry each other's extension after being renamed or
+     sent around. The bytes say which one it really is; LibreOffice reads both. */
+  const magic = magicOf(head);
+  let actual = spec;
+  if (spec.kind === 'office' && magic !== spec.magic && SWAPPED[ext]) actual = KINDS[SWAPPED[ext]];
+  if (magic !== actual.magic) throw badRequest(MISMATCH);
 
-  if (spec.magic === 'zip') {
+  if (actual.magic === 'zip') {
     let names;
     try { names = await zipEntryNames(filePath); } catch { throw badRequest(MISMATCH); }
-    if (!names.includes(spec.mustContain)) throw badRequest(MISMATCH);
+    if (!names.includes(actual.mustContain)) throw badRequest(MISMATCH);
     if (names.some((n) => /vbaProject\.bin$/i.test(n) || /vbaData\.xml$/i.test(n))) {
       throw badRequest('Documents with macros are not accepted. Please save it as a normal .docx/.pptx or PDF.');
     }
   }
-  return { ext, mime: spec.mime, kind: spec.kind };
+  return { ext, mime: actual.mime, kind: actual.kind };
 }
 
 const kindOfMime = (mime) => (mime === 'application/pdf' ? 'pdf' : mime.startsWith('image/') ? 'image' : 'office');

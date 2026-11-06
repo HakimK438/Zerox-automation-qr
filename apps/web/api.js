@@ -3,7 +3,7 @@
    Same-origin only: the session lives in an HttpOnly cookie that this script can never read. */
 const QPApi = (() => {
   class ApiError extends Error {
-    constructor(status, code, message) { super(message); this.status = status; this.code = code; }
+    constructor(status, code, message) { super(QPI18n.server(message)); this.status = status; this.code = code; }
   }
 
   async function request(path, { method = 'GET', body } = {}) {
@@ -151,6 +151,9 @@ const QPApi = (() => {
    */
   const startPayment = (orderId) => request(`/api/orders/${encodeURIComponent(orderId)}/payments`, { method: 'POST' });
 
+  /** Test mode only: pretend the customer paid ('success') or the payment failed ('fail'). */
+  const testPayment = (orderId, result) => request(`/api/orders/${encodeURIComponent(orderId)}/test-payment`, { method: 'POST', body: { result } });
+
   /** { orderStatus, paid, payment }. Poll this after returning from the UPI app (server asks Paytm). */
   const paymentStatus = (orderId) => request(`/api/orders/${encodeURIComponent(orderId)}/payment-status`);
 
@@ -231,6 +234,6 @@ const QPApi = (() => {
     getShop, estimate, rateOrder, live,
     startOrder, getOrder, getDocument, deleteDocument, uploadDocument, waitForDocument, ACCEPT,
     getPricing, setParts, getQuote, checkout, money,
-    startPayment, paymentStatus, reopenOrder, watchPayment
+    startPayment, testPayment, paymentStatus, reopenOrder, watchPayment
   };
 })();

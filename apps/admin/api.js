@@ -4,7 +4,7 @@ const QA = (() => {
   let csrf = null;
 
   class ApiError extends Error {
-    constructor(status, code, message, details) { super(message); this.status = status; this.code = code; this.details = details; }
+    constructor(status, code, message, details) { super(QPI18n.server(message)); this.status = status; this.code = code; this.details = details; }
   }
 
   async function request(path, { method = 'GET', body } = {}) {
@@ -22,7 +22,7 @@ const QA = (() => {
     if (!res.ok) {
       const e = data.error || {};
       const detail = Array.isArray(e.details) && e.details[0] ? ` (${e.details[0].path ? `${e.details[0].path}: ` : ''}${e.details[0].message})` : '';
-      throw new ApiError(res.status, e.code || 'error', (e.message || 'Something went wrong.') + detail, e.details);
+      throw new ApiError(res.status, e.code || 'error', (QPI18n.server(e.message) || 'Something went wrong.') + detail, e.details);
     }
     return data;
   }
@@ -52,8 +52,8 @@ const QA = (() => {
     setSetting: (key, value) => request(`/api/admin/settings/${enc(key)}`, { method: 'PUT', body: { value } }),
     setPrices: (prices) => request('/api/admin/prices', { method: 'PUT', body: prices }),
     report: (date) => request(`/api/admin/reports/daily${date ? `?date=${enc(date)}` : ''}`),
-    audit: (before) => request(`/api/admin/audit?limit=50${before ? `&before=${enc(before)}` : ''}`),
-    problems: () => request('/api/admin/reports/problems'),
+    demoPrinter: () => request('/api/admin/demo-printer'),
+    setDemoPrinter: (on) => request('/api/admin/demo-printer', { method: 'POST', body: { on } }),
     refundPayment: (id, reason, password) => request(`/api/admin/payments/${enc(id)}/refund`, { method: 'POST', body: { reason, password } }),
     changePassword: (current, next) => request('/api/admin/password', { method: 'POST', body: { current, next } }),
     printers: () => request('/api/admin/printers'),

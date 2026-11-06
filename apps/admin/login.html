@@ -5,11 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Shop login</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="dashboard.css">
 </head>
 <body class="loginpage">
 <main class="login">
+  <div class="loginlang"><button class="langbtn" id="langBtn" type="button"></button></div>
   <div class="logo"><svg class="i" viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg></div>
   <h1>Shop login</h1>
   <p class="muted">For the shop owner and counter staff only.</p>
@@ -23,8 +25,11 @@
     <p class="err hide" id="lerr" role="alert"></p>
     <button class="btn block" id="lbtn" type="submit">Log in</button>
   </form>
+  <p class="demo hide" id="devNote">Test account filled in for you. This works on this computer only.</p>
   <p class="note">No account yet? On the server run <code>npm run admin:create</code>.</p>
 </main>
+<script src="i18n-hi.js"></script>
+<script src="i18n-core.js"></script>
 <script src="login.js"></script>
 </body>
 </html>
