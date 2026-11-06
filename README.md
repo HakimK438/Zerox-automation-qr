@@ -1,17 +1,44 @@
-# Quick Print – QR Xerox Ordering (front-end prototype)
+# Quick Print — QR Xerox Automation
 
-Open `index.html` in a browser, or host it on any static host and point your shop QR code at the URL.
+Customers scan the shop QR code, upload documents, choose print settings, pay with Paytm UPI, and get a
+token with a live ETA. The shop admin prints automatically or manually through a Windows print agent.
 
-## 
-Edit the `CONFIG` block at the top of the script in `index.html`: shop name, UPI ID, payee name,
-file-size limit, per-side prices, double-sided per-sheet prices, additional charges.
+The full design, defect analysis and phased roadmap are in [PRODUCTION_PLAN.md](PRODUCTION_PLAN.md).
+**Current progress, decisions, conventions and the next phase's spec are in [PROGRESS.md](PROGRESS.md).**
 
-## Not included yet (needs a backend)
-- Secure file storage and server-side page counting
-- Server-side price recalculation
-- Payment verification via your payment provider's callback/API (amount + order ID check)
-- Duplicate order/payment protection and order storage
-- Notifying the shop's printing system
+## Layout
 
-The "simulate verified payment" checkbox is a demo only.
-The QR code library loads from cdnjs, so an internet connection is needed for the QR image.
+| Path | What |
+|---|---|
+| `apps/server` | Node 22 + Express 5 API, SQLite (WAL) via better-sqlite3 |
+| `apps/web` | Customer site (from the Zerox-automation-qr repo; still the localStorage mock until phases 1–5 wire it) |
+| `apps/admin` | Admin dashboard (same source; wired in phase 6) |
+| `apps/print-agent` | Windows print agent (phase 7) |
+| `shared/constants.js` | Order states, allowed transitions, labels, upload types |
+| `deploy/` | Caddy, systemd, backups (phase 9) |
+| `legacy/` | Old prototype backend and frontend, kept for reference only |
+| `docs/` | Concept PDF and earlier planning notes |
+
+## Development
+
+```bash
+npm install
+npm test          # server test suite
+npm run dev       # API on http://127.0.0.1:3000 (data in ./data)
+```
+
+Configuration is validated at startup; see `.env.example`. Production refuses plain-HTTP origins,
+insecure cookies, a shared customer/admin origin, and `QP_TRUST_PROXY=true`.
+
+## Status
+
+- [x] Phase 0 — scaffold, config, database schema, security middleware, tests
+- [x] Phase 1 — anonymous sessions + recovery (API + `apps/web/api.js`; page wiring lands with the order page in phase 5)
+- [x] Phase 2 — document upload + conversion (API + `apps/web/api.js`; LibreOffice needed for Word/PowerPoint — `sudo apt install libreoffice-writer-nogui libreoffice-impress-nogui`)
+- [x] Phase 3 — pricing + quote + checkout freeze (API + `apps/web/api.js`)
+- [x] Phase 4 — Paytm payment, verification, reconciler, refunds (server; tested against a mock Paytm — needs real staging credentials to verify)
+- [x] Phase 5 — queue + ETA, live updates, customer site wired end to end (`npm run e2e` for the browser test)
+- [x] Phase 6 — admin auth (password + authenticator code) + live dashboard (`npm run admin:create`, `npm run dev:fakepay`, `npm run e2e:admin`)
+- [x] Phase 7 — Windows print agent (`apps/print-agent`, install guide in `apps/print-agent/windows/README.md`; needs a real shop-PC test)
+- [x] Phase 8 — file retention, reconciliation, problems list, CSV, extra-payment refunds, password change
+- [ ] Phase 9 — deployment on Oracle Cloud

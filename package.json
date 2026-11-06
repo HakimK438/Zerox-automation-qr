@@ -1,0 +1,23 @@
+{
+  "name": "quick-print",
+  "private": true,
+  "description": "QR-based xerox automation: customer web app, admin dashboard, API server and Windows print agent.",
+  "workspaces": [
+    "apps/server",
+    "apps/print-agent"
+  ],
+  "scripts": {
+    "start": "npm --workspace apps/server run start",
+    "dev": "npm --workspace apps/server run dev",
+    "test": "npm --workspace apps/server test && npm --workspace apps/print-agent test",
+    "e2e": "npm --workspace apps/server run e2e",
+    "dev:fakepay": "npm --workspace apps/server run dev:fakepay",
+    "admin:create": "npm --workspace apps/server run admin:create --",
+    "e2e:admin": "npm --workspace apps/server run e2e:admin",
+    "test:server": "npm --workspace apps/server test",
+    "test:agent": "npm --workspace apps/print-agent test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

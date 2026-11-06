@@ -1,0 +1,16 @@
+{
+  "name": "quick-print-backend",
+  "version": "1.0.0",
+  "description": "Vertical slice backend for anonymous sessions",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2",
+    "pdf-lib": "^1.17.1",
+    "uuid": "^11.0.2"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@quick-print/print-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Runs on the shop's Windows PC: finds printers, prints paid orders, reports back. Outbound HTTPS only.",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

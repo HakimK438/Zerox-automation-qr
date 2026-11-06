@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f4fb0">
+<meta name="referrer" content="same-origin">
+<title>Print your documents</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="page.css">
+</head>
+<body>
+<header class="nav"><div class="wrap">
+  <a class="brand" href="#" id="home"><i><svg class="i" viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg></i><span id="navShop">Print shop</span></a>
+  <nav class="links">
+    <button class="btn hide" id="myOrder">My order</button>
+    <button class="btn ghost findbtn" id="findBtn" type="button">Find my order</button>
+  </nav>
+</div></header>
+
+<main class="wrap" id="page">
+  <!-- ===== PRINT PAGE ===== -->
+  <div id="pPrint">
+    <section id="print">
+      <h1 class="pt">Get Your Documents Printed</h1>
+      <p class="secsub">Upload your documents, choose how to print them, and pay securely with UPI.</p>
+      <div class="layout" id="layout">
+        <div id="left">
+          <div class="stp" id="stp1"><span class="no" id="stp1no">1</span><span id="stp1t">Upload Documents</span><button class="addbtn hide" id="addTop" type="button">+ Add file</button></div>
+          <div class="drop" id="drop" role="button" tabindex="0"><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H10l2 2h7.5A1.5 1.5 0 0 1 21 9.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M12 16V10m-3 3 3-3 3 3"/></svg></div><b>Tap to choose your documents</b><p>PDF, Word, PowerPoint, JPG or PNG</p><p id="dropLimit">Maximum 25 MB per file · Multiple files supported</p><div class="upload-types" aria-hidden="true"><span class="upload-type"><b>PDF</b></span><span class="upload-type"><b>DOC / DOCX</b></span><span class="upload-type"><b>PPT / PPTX</b></span><span class="upload-type"><b>JPG / PNG</b></span></div><span class="btn">Browse Files</span></div>
+          <div id="area" class="hide">
+            <div id="files"></div>
+          </div>
+        </div>
+        <div class="viewer hide" id="viewer" role="dialog" aria-modal="true">
+          <div class="vbar"><div style="flex:1;min-width:0"><b id="vname"></b><span id="vsub" style="color:var(--gr);font-size:.85rem"></span></div>
+            <button class="x-ic" id="vclose" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+          <div class="vpages" id="vpages"></div>
+          <div class="vtools"><button id="vprev" aria-label="Previous page">‹</button><span id="vnum">1 / 1</span><button id="vnext" aria-label="Next page">›</button><i class="sep"></i><button id="vout" aria-label="Zoom out">−</button><span id="vzoom">100%</span><button id="vin" aria-label="Zoom in">+</button></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== WAITING FOR PAYMENT (order already submitted) ===== -->
+  <section id="pWait" class="hide center"><div class="spin"></div><h2 class="sec">Waiting for payment</h2>
+    <p class="secsub" id="waitText">Finish paying in your UPI app, then come back here.</p>
+    <button class="btn" id="waitPay" style="width:100%">Pay now</button>
+    <button class="btn ghost" id="waitCheck" style="width:100%;margin-top:10px">Payment done? Check status</button>
+    <button class="linkbtn" id="waitEdit">Change my order</button></section>
+
+  <!-- ===== ORDER / TOKEN PAGE ===== -->
+  <section id="pOrder" class="hide order">
+    <button class="back" id="backPrint"><svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>Print more</button>
+    <div class="ticket">
+      <div class="tkhead"><b id="tkShop">Print shop</b><span>Print ticket</span></div>
+      <div class="tkbody c">
+        <div class="tl">Your token number</div>
+        <div class="tno" id="tk"></div>
+        <span class="badge" id="tstat"></span>
+        <div><span class="pin hide" id="pinBox">Pickup PIN <b id="pin"></b></span></div>
+        <div class="eta"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span id="fTime"></span></div>
+        <div class="qline" id="qLine"></div>
+        <div class="track" id="track"></div>
+        <button class="btn block hide" id="newOrder" type="button">Start a new order</button>
+        <div class="rating hide" id="ratingBox"><div class="rating-title" id="ratingTitle">Rate your order</div><div class="rating-stars" id="ratingStars" role="group" aria-label="Rate your order"></div><p class="rating-message" id="ratingMessage" aria-live="polite"></p></div>
+        <p class="tip">Tip: take a screenshot of your token and PIN.</p>
+      </div>
+      <div class="cut"></div>
+      <div class="tkbody">
+        <div class="h">Print summary</div>
+        <div id="doneList"></div>
+        <div class="total"><span>Total paid</span><b id="tAmount"></b></div>
+      </div>
+      <div class="cut"></div>
+      <div class="tkbody">
+        <div class="h">How to collect</div>
+        <ol class="steps"><li><span>1</span>Wait here. This page updates by itself when your prints are ready.</li><li><span>2</span>Go to the shop.</li><li><span>3</span>Tell the shopkeeper your token <b id="tk2"></b> and PIN.</li></ol>
+        <div class="where"><svg class="i" viewBox="0 0 24 24"><path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg><div><div id="where"></div><div id="whereAddr"></div><div id="whereHours"></div><a id="whereCall" href="#"></a></div></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot"><div class="wrap"><span id="fLine"></span></div></footer>
+
+<div class="dock hide" id="dock"><div class="wrap">
+  <div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h6"/></svg></div>
+  <div class="sum"><small id="dockInfo"></small><b id="dockTotal"></b></div>
+  <div class="eta"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span id="dockEta"></span></div>
+  <button class="btn" id="pay" disabled>Pay</button>
+</div></div>
+
+<!-- ===== PAY SHEET: best option for this device first, every fallback visible (plan C10) ===== -->
+<div class="sheetbg hide" id="paySheet"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="payTitle">
+  <div class="banner hide" id="inAppBanner"></div>
+  <h2 id="payTitle">Amount to pay</h2><div class="amt" id="sheetAmt"></div>
+  <div class="paybox" id="payOptions"></div>
+  <button class="btn ghost block" id="payOther" type="button">Other ways to pay (UPI ID, card, net banking)</button>
+  <div class="paystate" id="payState" aria-live="polite"></div>
+  <button class="btn ghost block" id="payCheck" type="button">Payment done? Check status</button>
+  <button class="linkbtn" id="payEdit" type="button">Change my order</button>
+</div></div>
+
+<!-- ===== FIND MY ORDER (token + PIN, e.g. opened in a different browser) ===== -->
+<div class="sheetbg hide" id="findSheet"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="findTitle">
+  <h2 id="findTitle">Find my order</h2>
+  <p class="secsub">Enter the token and PIN from your print ticket.</p>
+  <form id="findForm" novalidate>
+    <div class="row2">
+      <div><label for="findToken">Token</label><input class="field" id="findToken" autocomplete="off" placeholder="XR-105" maxlength="12"></div>
+      <div><label for="findPin">PIN</label><input class="field" id="findPin" inputmode="numeric" autocomplete="off" placeholder="4 digits" maxlength="4"></div>
+    </div>
+    <div class="err" id="findErr" aria-live="polite"></div>
+    <button class="btn block" type="submit">Find order</button>
+    <button class="linkbtn" type="button" id="findCancel">Cancel</button>
+  </form>
+</div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<input type="file" id="fileIn" multiple class="hide">
+<script src="vendor/qrcode/qrcode.js"></script>
+<script type="module" src="pdf-loader.js"></script>
+<script src="api.js"></script>
+<script src="customer.js"></script>
+</body>
+</html>

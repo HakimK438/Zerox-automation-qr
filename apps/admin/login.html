@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Shop login</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body class="loginpage">
+<main class="login">
+  <div class="logo"><svg class="i" viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg></div>
+  <h1>Shop login</h1>
+  <p class="muted">For the shop owner and counter staff only.</p>
+  <form id="loginForm" autocomplete="on" novalidate>
+    <label class="lbl" for="lu">Username</label>
+    <input class="field" id="lu" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    <label class="lbl" for="lp">Password</label>
+    <input class="field" id="lp" name="password" type="password" autocomplete="current-password" required>
+    <label class="lbl" for="lo">6-digit code from your authenticator app</label>
+    <input class="field otp" id="lo" name="otp" inputmode="numeric" autocomplete="one-time-code" pattern="\d{6}" maxlength="6" required>
+    <p class="err hide" id="lerr" role="alert"></p>
+    <button class="btn block" id="lbtn" type="submit">Log in</button>
+  </form>
+  <p class="note">No account yet? On the server run <code>npm run admin:create</code>.</p>
+</main>
+<script src="login.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<!-- WinSW service definition: runs the agent in the background, starts with Windows, restarts on crash. -->
+<service>
+  <id>QuickPrintAgent</id>
+  <name>Quick Print Agent</name>
+  <description>Prints paid Quick Print orders on this PC's printers. Outbound HTTPS only.</description>
+  <executable>C:\Program Files\nodejs\node.exe</executable>
+  <arguments>"C:\QuickPrint\agent\src\main.js"</arguments>
+  <workingdirectory>C:\QuickPrint\agent</workingdirectory>
+  <env name="QP_AGENT_CONFIG" value="C:\QuickPrint\config.json"/>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="30 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <log mode="roll-by-size"><sizeThreshold>5120</sizeThreshold><keepFiles>3</keepFiles></log>
+</service>

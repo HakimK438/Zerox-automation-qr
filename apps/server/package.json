@@ -1,0 +1,34 @@
+{
+  "name": "@quick-print/server",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test \"test/**/*.test.js\"",
+    "e2e": "node e2e/customer.e2e.js",
+    "dev:fakepay": "node scripts/dev-fake-paytm.js",
+    "admin:create": "node scripts/admin-create.js",
+    "e2e:admin": "node e2e/admin.e2e.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "busboy": "^1.6.0",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.3.0",
+    "heic-convert": "^2.1.0",
+    "helmet": "^8.3.0",
+    "pdf-lib": "^1.17.1",
+    "sharp": "^0.35.5",
+    "yauzl": "^3.4.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.48.2",
+    "yazl": "^3.3.1"
+  }
+}

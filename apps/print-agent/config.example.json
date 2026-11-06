@@ -1,0 +1,5 @@
+{
+  "serverUrl": "https://print.example.com",
+  "agentName": "Shop PC",
+  "sumatra": ["C:\\QuickPrint\\SumatraPDF.exe"]
+}
